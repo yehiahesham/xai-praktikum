@@ -29,8 +29,8 @@ class Dataset_HZ(Dataset):
         horse_img = self.horse_imgs[item_idx % self.horse_len]
 
         # Individual Img Paths
-        zebra_path = os.join(self.root_zebra, zebra_img)
-        horse_path = os.join(self.root_horse, horse_img)
+        zebra_path = os.path.join(self.root_zebra, zebra_img)
+        horse_path = os.path.join(self.root_horse, horse_img)
 
         # Convert to PIL Images
         zebra_img = np.array(Image.open(zebra_path).convert("RGB"))

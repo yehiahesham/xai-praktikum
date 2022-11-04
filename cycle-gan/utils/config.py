@@ -13,7 +13,7 @@ LAMBDA_IDENTITY = 0.0
 LAMBDA_CYCLE = 10
 NUM_WORKERS = 4
 NUM_EPOCHS = 200
-LOAD_MODEL = True
+LOAD_MODEL = False # Change this to True if we have a saved .pth file
 SAVE_MODEL = True
 
 # Checkpoint Variables
