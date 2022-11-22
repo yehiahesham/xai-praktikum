@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 from transformers import CLIPProcessor, CLIPTokenizerFast, CLIPModel
 import torch
@@ -11,7 +13,6 @@ from tqdm.auto import tqdm
 # Device setup
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-
 def get_request(query):
     print(query.url)
 
@@ -19,32 +20,54 @@ def read_file_from_tsv(file_path):
     data = pd.read_csv(file_path, sep="\t")
     return data
 
+def download_dataset(file_path, download_path):
+    """
+    Creates the dataset
+    :param file_path:
+    :param download_path:
+    :return:
+    """
 
-model_id = "openai/clip-vit-base-patch32"
+    text_url_pairs = read_file_from_tsv(file_path)
+    save_loc = download_path + "/Conceptual Captions/images"
+    os.mkdir(save_loc)
 
-# Loading the CLIP models
-model = CLIPModel.from_pretrained(model_id).to(device)
-tokenizer = CLIPTokenizerFast.from_pretrained(model_id)
-processor = CLIPProcessor.from_pretrained(model_id)
+    for i in range(len(text_url_pairs)):
+        text, url = text_url_pairs.iloc[i][0], text_url_pairs.iloc[i][1]
+        response = Image.open(requests.get(url))
 
-# Getting the data
-data = read_file_from_tsv("data/Conceptual Captions/Train_GCC-training.tsv")
-test_data_caption = data.iloc[0][0]
-print(test_data_caption)
+        if response.status_code:
+            fp = open(f"{save_loc}/{i}", "wb")
+            fp.write(response)
+            fp.close()
 
-# Testing the text embedding
-inputs = tokenizer(test_data_caption, return_tensors="pt")
-print(inputs)
+download_dataset("data/Conceptual Captions/Train_GCC-training.tsv", "data")
 
-# Testing the image embedding
-print(data.info)
-urls = []
-
-
-for i in range(len(data)):
-    urls.append(data.iloc[i][1])
-
-print(urls)
+# model_id = "openai/clip-vit-base-patch32"
+#
+# # Loading the CLIP models
+# model = CLIPModel.from_pretrained(model_id).to(device)
+# tokenizer = CLIPTokenizerFast.from_pretrained(model_id)
+# processor = CLIPProcessor.from_pretrained(model_id)
+#
+# # Getting the data
+# data = read_file_from_tsv("data/Conceptual Captions/Validation_GCC-1.1.0-Validation.tsv")
+# test_data_caption = data.iloc[1][0]
+# print(test_data_caption)
+#
+# # Testing the text embedding
+# inputs = tokenizer(test_data_caption, return_tensors="pt")
+# print(inputs)
+#
+# # Testing the image embedding
+# # print(data.info)
+# urls = []
+#
+#
+# for i in range(len(data)):
+#     urls.append(data.iloc[i][1])
+#
+# print(urls)
 
 # Resize the image
 # image = processor(
