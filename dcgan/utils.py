@@ -1,14 +1,16 @@
 import os
-
+import wget
 import pandas as pd
 from transformers import CLIPProcessor, CLIPTokenizerFast, CLIPModel
 import torch
 import requests
 from PIL import Image
 import matplotlib.pyplot as plt
-from urllib.request import urlopen
+import urllib.request
 import numpy as np
 from tqdm.auto import tqdm
+import glob
+import multiprocessing
 
 # Device setup
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -20,29 +22,70 @@ def read_file_from_tsv(file_path):
     data = pd.read_csv(file_path, sep="\t")
     return data
 
-def download_dataset(file_path, download_path):
-    """
-    Creates the dataset
-    :param file_path:
-    :param download_path:
-    :return:
-    """
+def download_element(url, save_loc, error_list, i):
+    try:
+        file_name = wget.download(url, out=save_loc)
+        ext_idx = file_name.rfind('.')
+        if ext_idx == -1:
+            error_list.append(f"URL {i} failed. Does not have extention" )
+            return
+        ext = file_name[ext_idx:]
+        os.rename(file_name, save_loc + "/" + str(i) + ext)
+
+        print(file_name, save_loc + "/" + str(i) + ext)
+
+    except Exception as e:
+        error_list.append(f"URL failed." + str(e))
+
+
+def download_dataset(file_path, download_path, threadıng=False):
+
+    if threadıng:
+        cpus = multiprocessing.cpu_count()
+        max_pool_size = 4
+        pool = multiprocessing.Pool(cpus if cpus < max_pool_size else max_pool_size)
 
     text_url_pairs = read_file_from_tsv(file_path)
-    save_loc = download_path + "/Conceptual Captions/images"
-    os.mkdir(save_loc)
+    save_loc = download_path + "/Conceptual Captions/images/"
+    start_file = 0
+    downloaded_files = []
+    error_list = []
+    if not os.path.exists(save_loc):
+        os.mkdir(save_loc)
+    else:
+        downloaded_files = len([name for name in os.listdir(save_loc) if os.path.isfile(os.path.join(save_loc, name))])
+        # start_file = len([name for name in os.listdir(save_loc) if os.path.isfile(os.path.join(save_loc, name))])
 
-    for i in range(len(text_url_pairs)):
+    # print("Index of the starting url is: ", start_file)
+    for i in tqdm(range(0, len(text_url_pairs))):
+
+        if glob.glob(save_loc + "/" + str(i) + ".*"):
+            continue
+
         text, url = text_url_pairs.iloc[i][0], text_url_pairs.iloc[i][1]
-        response = Image.open(requests.get(url))
+        download_element(url, save_loc, error_list, i)
 
-        if response.status_code:
-            fp = open(f"{save_loc}/{i}", "wb")
-            fp.write(response)
-            fp.close()
+        if threadıng:
+            pool.close()
+            pool.join()
 
-download_dataset("data/Conceptual Captions/Train_GCC-training.tsv", "data")
 
+
+
+
+download_dataset("data/Conceptual Captions/Train_GCC-training.tsv", "data", threadıng=False)
+
+
+# image = Image.open(file_name)
+
+# response = requests.get(url)
+#
+# image = Image.open(response.content)
+#
+# if response.status_code:
+#     fp = open(, "wb")
+#     fp.write(image)
+#     fp.close()
 # model_id = "openai/clip-vit-base-patch32"
 #
 # # Loading the CLIP models
