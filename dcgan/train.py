@@ -21,12 +21,13 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 LR = 2e-4
 BATCH_SIZE = 128
 IMAGE_SIZE = 64
-CHANNELS_IMG = 1 # For the MNIST DATASET. Then celebrity set.
+CHANNELS_IMG = 1
 NOISE_DIM = 100
 NUM_EPOCHS = 5
 FEATURES_DISC = 64
 FEATURES_GEN = 64
 
+# Applying transforms to the dataset
 transforms = transforms.Compose(
     [
         transforms.Resize(IMAGE_SIZE),
@@ -37,9 +38,11 @@ transforms = transforms.Compose(
     ]
 )
 
+# Grabbing dataset and creating dataloader
 dataset= datasets.MNIST(root="../dataset/", train=True, transform=transforms, download=True)
 loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
+# Initializing Gen and Disc
 gen = Generator(NOISE_DIM, CHANNELS_IMG, FEATURES_GEN).to(device)
 disc = Discriminator(CHANNELS_IMG, FEATURES_DISC).to(device)
 initialize_weights(gen)

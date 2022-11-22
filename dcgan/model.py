@@ -9,6 +9,9 @@
 import torch
 import torch.nn as nn
 
+
+# TODO: Modify the inputs for embeddings.
+
 # DCGAN Discriminator Implementation
 class Discriminator(nn.Module):
     def __init__(self, channels_img, features_d):
@@ -16,13 +19,13 @@ class Discriminator(nn.Module):
         self.disc = nn.Sequential(
             # Input : N * channels_img * 64 * 64
             nn.Conv2d(
-              channels_img, features_d, kernel_size=4, stride=2, padding=1
+              channels_img, features_d, kernel_size=(4,), stride=(2,), padding=1 # TODO: Tuple?
             ), # 32*32
             nn.LeakyReLU(0.2),
-            self._block(features_d, features_d*2, kernel_size=4, stride=2, padding=1), # 16x16
+            self._block(features_d, features_d * 2, kernel_size=4, stride=2, padding=1), # 16x16
             self._block(features_d * 2, features_d * 4, kernel_size=4, stride=2, padding=1), # 8x8
             self._block(features_d * 4, features_d * 8, kernel_size=4, stride=2, padding=1), # 4x4
-            nn.Conv2d(features_d * 8, 1, kernel_size=4, stride=2, padding=0), # 1x1 single value fake or real
+            nn.Conv2d(features_d * 8, 1, kernel_size=(4,), stride=(2,), padding=0), # 1x1 single value fake or real
             nn.Sigmoid()
         )
 
@@ -79,7 +82,7 @@ def initialize_weights(model):
             nn.init.normal_(m.weight.data, 0.0, 0.02)
 
 def test():
-    N, in_channels, H, W = 8, 3, 64, 64
+    N, in_channels, H, W = 8, 1, 64, 64
     z_dim = 100
     x = torch.randn((N, in_channels, H, W))
     disc = Discriminator(in_channels, 8)
