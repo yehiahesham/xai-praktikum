@@ -24,6 +24,13 @@ class Experiment:
         self.explanationType = self.type["explanationType"]
         self.generator = self.type["generator"]()
         self.discriminator = self.type["discriminator"]()
+        
+        self.text_emb_model = self.type["text_emb_model"]()
+        self.text_max_len = self.type["text_max_len"]()
+        self.use_one_caption = self.type["use_one_caption"]()
+        self.use_CLS_emb = self.type["use_CLS_emb"]()
+        # self.text_emb_size = self.type["text_emb_size"]() #TODO
+
         self.g_optim = self.type["g_optim"](self.generator.parameters(), lr=self.type["glr"], betas=(0.5, 0.99))
         self.d_optim = self.type["d_optim"](self.discriminator.parameters(), lr=self.type["dlr"], betas=(0.5, 0.99))
         self.loss = self.type["loss"]
