@@ -4,7 +4,8 @@ import torch
 from torch.nn import functional as F
 from captum.attr import DeepLiftShap, Saliency
 from utils.vector_utils import values_target
-from lime import lime_image
+# from lime import lime_image
+
 
 # defining global variables
 global values
@@ -34,23 +35,23 @@ def get_explanation(generated_data, discriminator, prediction, XAItype="shap", c
                 explainer = DeepLiftShap(discriminator)
                 temp[indices[i], :] = explainer.attribute(data[i, :].detach().unsqueeze(0), trained_data, target=0)
 
-        elif XAItype == "lime":
-            explainer = lime_image.LimeImageExplainer()
-            global discriminatorLime
-            discriminatorLime = deepcopy(discriminator)
-            discriminatorLime.cpu()
-            discriminatorLime.eval()
-            for i in range(len(indices)):
-                if data_type == "cifar":
-                    tmp = data[i, :].detach().cpu().numpy()
-                    tmp = np.reshape(tmp, (32, 32, 3)).astype(np.double)
-                    exp = explainer.explain_instance(tmp, batch_predict_cifar, num_samples=100)
-                else:
-                    tmp = data[i, :].squeeze().detach().cpu().numpy().astype(np.double)
-                    exp = explainer.explain_instance(tmp, batch_predict, num_samples=100)
-                _, mask = exp.get_image_and_mask(exp.top_labels[0], positive_only=False, negative_only=False)
-                temp[indices[i], :] = torch.tensor(mask.astype(np.float))
-            del discriminatorLime
+        # elif XAItype == "lime":
+        #     explainer = lime_image.LimeImageExplainer()
+        #     global discriminatorLime
+        #     discriminatorLime = deepcopy(discriminator)
+        #     discriminatorLime.cpu()
+        #     discriminatorLime.eval()
+        #     for i in range(len(indices)):
+        #         if data_type == "cifar":
+        #             tmp = data[i, :].detach().cpu().numpy()
+        #             tmp = np.reshape(tmp, (32, 32, 3)).astype(np.double)
+        #             exp = explainer.explain_instance(tmp, batch_predict_cifar, num_samples=100)
+        #         else:
+        #             tmp = data[i, :].squeeze().detach().cpu().numpy().astype(np.double)
+        #             exp = explainer.explain_instance(tmp, batch_predict, num_samples=100)
+        #         _, mask = exp.get_image_and_mask(exp.top_labels[0], positive_only=False, negative_only=False)
+        #         temp[indices[i], :] = torch.tensor(mask.astype(np.float))
+        #     del discriminatorLime
         else:
             raise Exception("wrong xAI type given")
 
