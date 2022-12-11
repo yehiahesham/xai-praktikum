@@ -1,0 +1,6 @@
+#ignore text editors folders
+.idea/
+
+# ignored output folders
+__pycache__/
+.ipynb_checkpoints/
