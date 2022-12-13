@@ -97,7 +97,7 @@ class Experiment:
             
             #print(loader)
 
-            for n_batch, (real_batch) in enumerate(loader):
+            for n_batch, (real_batch,(captions,file_name)) in enumerate(loader):
 
                 N = real_batch.size(0)
 

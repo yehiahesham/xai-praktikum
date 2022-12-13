@@ -13,10 +13,11 @@ import numpy as np
 from PIL import Image
 
 class COCODetection(data.Dataset):
-    def __init__(self, image_path, info_file, has_gt=True):
+    def __init__(self, image_path, info_file,val_cap, has_gt=True):
         self.root = image_path
         self.coco = COCO(info_file)
         self.ids = list(self.coco.imgToAnns.keys())  # 标签数
+        self.coco_caps=COCO(val_cap)
 
         if len(self.ids) == 0 or not has_gt:  # 如果没有标签或者不需要GT，则直接使用image
             self.ids = list(self.coco.imgs.keys())
@@ -31,7 +32,7 @@ class COCODetection(data.Dataset):
     def __getitem__(self, index):
         im ,gt, captions,file_name, h, w, num_crowds = self.pull_item(index)
 
-        return im,captions,file_name
+        return im,(captions,file_name)
 
     def pull_item(self, index):
         
@@ -70,25 +71,29 @@ class COCODetection(data.Dataset):
         captions = []
         for ann in ann_cap:
             captions.append(ann['caption'])
-
+                                           #(1, 0, 2)? 
         return torch.from_numpy(img).permute(2, 1, 0), target,captions,file_name, height, width, num_crowds
+                                           #(?, ?, ?)
 
 
 if __name__=='__main__':
       
     from models.configurations import configurations
-    MS_COCO_CFG = configurations["datasets"]["MS_COCO"]
-    val_info     = MS_COCO_CFG["path"]+"/"+MS_COCO_CFG["trainval_annotations"]+"/"+"instances_val2017.json"
+    MS_COCO_CFG  = configurations["datasets"]["MS_COCO"]
     val_image    = MS_COCO_CFG["path"]+"/"+MS_COCO_CFG["val_images"]
+    val_info     = MS_COCO_CFG["path"]+"/"+MS_COCO_CFG["trainval_annotations"]+"/"+"instances_val2017.json"
+    val_cap      = MS_COCO_CFG["path"]+"/"+MS_COCO_CFG["trainval_annotations"]+"/"+"captions_val2017.json"
     
-    dataset = COCODetection(val_image, val_info)
+    dataset = COCODetection(val_image, val_info,val_cap)
     loader = DataLoader(dataset)
     for n, (img,captions,file_name) in enumerate(loader):
-        
+        print(n)
         img = np.uint8(img.squeeze().numpy())
         #cv2.imshow('img', img)
         print(file_name)
         print(captions)
+        # cv2.imshow('img', img)
+        # cv2.waitKey(500)
         
         
         #gt, masks, num_crowds = label
@@ -101,5 +106,6 @@ if __name__=='__main__':
             y, x = np.where(mask == 1)
             img[y, x, channel] = color
         """
-        cv2.imshow('img', img)
-        cv2.waitKey(500)
+        # cv2.imshow('img', img)
+        # cv2.waitKey(500)
+        
