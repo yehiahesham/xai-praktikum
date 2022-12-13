@@ -14,10 +14,10 @@ from PIL import Image
 
 class COCODetection(data.Dataset):
     def __init__(self, image_path, info_file,val_cap, has_gt=True):
-        self.root = image_path
-        self.coco = COCO(info_file)
-        self.ids = list(self.coco.imgToAnns.keys())  # 标签数
-        self.coco_caps=COCO(val_cap)
+        self.root       = image_path
+        self.coco       = COCO(info_file)
+        self.coco_caps  = COCO(val_cap)
+        self.ids        = list(self.coco.imgToAnns.keys())  # 标签数
 
         if len(self.ids) == 0 or not has_gt:  # 如果没有标签或者不需要GT，则直接使用image
             self.ids = list(self.coco.imgs.keys())

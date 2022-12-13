@@ -7,6 +7,9 @@ from torch.autograd import Variable
 from torch import nn
 import torch
 import time
+import random
+import string
+import pandas as pd
 
 
 class Experiment:
@@ -17,20 +20,32 @@ class Experiment:
         :param experimentType: experiment enum that contains all the data needed to run the experiment
         :type experimentType:
         """
+
+        #Extract Paramters from Experiment Enum
         self.name = experimentType.name
         self.type = experimentType.value
-        #print(self.type)
-        self.explainable = self.type["explainable"]
-        self.explanationType = self.type["explanationType"]
-        self.generator = self.type["generator"]()
-        self.discriminator = self.type["discriminator"]()
         
-        self.text_emb_model = self.type["text_emb_model"]()
+        self.explainable = self.type["explainable"]
+        self.explanationType = self.type["explanationType"]        
+        self.noise_emb_sz = self.type["noise_emb_sz"]
         self.text_max_len = self.type["text_max_len"]
         self.use_one_caption = self.type["use_one_caption"]
         self.use_CLS_emb = self.type["use_CLS_emb"]
-        # self.text_emb_size = self.type["text_emb_size"] #TODO
+        self.text_emb_sz = self.type["text_emb_sz"] #TODO: to be able to chanhe that in roberta
 
+        
+        #Calcualted Parameters
+        self.Encoder_emb_sz =(self.noise_emb_sz+self.text_emb_sz)//2 #Hyper-paramter
+        self.EmbEncModel_inputs = self.noise_emb_sz,self.text_emb_sz,self.Encoder_emb_sz
+
+        #Declare & intialize Models
+        self.generator = self.type["generator"](n_features=self.Encoder_emb_sz)
+        self.discriminator = self.type["discriminator"]()
+        self.text_emb_model = self.type["text_emb_model"]()
+        self.EmbeddingEncoder_model = self.type["EmbeddingEncoder"](
+            self.noise_emb_sz,self.text_emb_sz,self.Encoder_emb_sz)
+            
+        #Set HyperParamters for Training 
         self.g_optim = self.type["g_optim"](self.generator.parameters(), lr=self.type["glr"], betas=(0.5, 0.99))
         self.d_optim = self.type["d_optim"](self.discriminator.parameters(), lr=self.type["dlr"], betas=(0.5, 0.99))
         self.loss = self.type["loss"]
@@ -59,8 +74,26 @@ class Experiment:
         
         
         test_noise = noise_coco(self.samples, self.cuda)
+        
+        #TODO: x2 check
+        random_text = ''.join(random.choice(string.ascii_lowercase) for i in range(10)) 
+        test_texts_emb = self.text_emb_model.forward([random_text])
+        for i in range(self.samples-1):
+            random_text = ''.join(random.choice(string.ascii_lowercase) for i in range(10)) 
+            random_text_emb = self.text_emb_model.forward([random_text])
+            test_texts_emb = torch.cat((test_texts_emb,random_text_emb), 0)
+        
+        #concatinate the 2 embeddings
+        test_dense_emb = torch.cat( (test_texts_emb,test_noise.reshape(self.samples,-1)), 1)
+        
+        #Get the dense encoding
+        test_dense_emb = self.EmbeddingEncoder_model(test_dense_emb )
+        test_dense_emb = test_dense_emb.reshape(-1,self.samples) #needed to work, TODO:investigate 
+
         self.generator.apply(weights_init)
         self.discriminator.apply(weights_init)
+        #self.EmbeddingEncoder.apply(weights_init) #TODO:check if need
+        #self.text_emb_model.appply(weights_init)  #TODO:check if need
         
 
         loader = get_loader(self.type["batchSize"], self.type["percentage"], self.type["dataset"])
@@ -69,6 +102,7 @@ class Experiment:
         if self.cuda:
             self.generator = self.generator.cuda()
             self.discriminator = self.discriminator.cuda()
+            self.EmbeddingEncoder = self.EmbeddingEncoder.cuda()
             self.loss = self.loss.cuda()
 
         if self.explainable:
@@ -95,17 +129,28 @@ class Experiment:
 
                 local_explainable = True
             
-            #print(loader)
-
             for n_batch, (real_batch,(captions,file_name)) in enumerate(loader):
 
                 N = real_batch.size(0)
+                captions = pd.DataFrame(captions)
+
+                # 0. Pass (Text+Noise) embeddings >  EmbeddingEncoder_NN > Generator_NN
+                noise_emb = noise_coco(N, self.cuda)
+                texts_emb = self.text_emb_model.forward(captions.iloc[:, 0])  #captions/image are on same col
+                for i in range(1,N):
+                    text_emb  =  self.text_emb_model.forward(captions.iloc[:, i])
+                    texts_emb = torch.cat((texts_emb,text_emb), 0)
+            
+                #concatinate the 2 embeddings
+                dense_emb = torch.cat( (texts_emb,noise_emb.reshape(N,-1)), 1)
+               
+                #Get the dense encoding
+                dense_emb = self.EmbeddingEncoder_model(dense_emb)
+                dense_emb = dense_emb.reshape(-1,N) #needed to work, TODO:investigate
 
                 # 1. Train Discriminator
                 # Generate fake data and detach (so gradients are not calculated for generator)
-                
-                
-                fake_data = self.generator(noise_coco(N, self.cuda)).detach()
+                fake_data = self.generator(dense_emb).detach()
 
                 
 
@@ -119,10 +164,10 @@ class Experiment:
                 # 2. Train Generator
                 # Generate fake data
                 
-                
-                fake_data = self.generator(noise_coco(N, self.cuda))
+                noise_emb = noise_coco(N, self.cuda) #new noise emb but same text emb
+                dense_emb = self.EmbeddingEncoder_model(texts_emb+noise_emb) 
+                fake_data = self.generator(dense_emb)
 
-                
 
                 if self.cuda:
                     fake_data = fake_data.cuda()
@@ -147,7 +192,7 @@ class Experiment:
         logger.save_models(generator=self.generator)
         logger.save_errors(g_loss=G_losses, d_loss=D_losses)
         timeTaken = time.time() - start_time
-        test_images = self.generator(test_noise)
+        test_images = self.generator(test_dense_emb)
 
         
         

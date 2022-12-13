@@ -2,6 +2,7 @@ from enum import Enum
 from models.generators import GeneratorNetMSCOCO
 from models.discriminators import  DiscriminatorNetMSCOCO
 from models.text_embedding_models import RobertaClass
+from models.encoders import EmbeddingEncoderNetMSCOCO
 
 from torch import nn, optim
 from experiment import Experiment
@@ -12,13 +13,15 @@ class ExperimentEnums(Enum):
     Mscoco = {
         "explainable": False,
         "explanationType": None,
+        "noise_emb_sz" : 100,       #GeneratorNetMSCOCO's noise param
+        "text_emb_sz" : 768, #TODO: #RobertaClass's param
+        "text_max_len":350,         #RobertaClass's param
+        "use_one_caption": True,    #RobertaClass's param
+        "use_CLS_emb":True,         #RobertaClass's param
         "generator": GeneratorNetMSCOCO,
         "discriminator": DiscriminatorNetMSCOCO,
         "text_emb_model":RobertaClass,
-        "text_max_len":350,       #RobertaClass's param
-        "use_one_caption": True,  #RobertaClass's param
-        "use_CLS_emb":True,       #RobertaClass's param
-        # "text_emb_size": 768,   #TODO: RobertaClass's param
+        "EmbeddingEncoder":EmbeddingEncoderNetMSCOCO,
         "dataset": "mscoco",
         "batchSize": 128,
         "percentage": 1,

@@ -8,13 +8,13 @@ from transformers import RobertaModel, RobertaTokenizer
 
 
 class RobertaClass(torch.nn.Module):
-    def __init__(self, max_len=350, use_CLS_emb=True):
+    def __init__(self, max_len=350, use_CLS_emb=True,use_one_caption=True ):
         super().__init__()
         #super(RobertaClass, self).__init__()
         self.roberta = RobertaModel.from_pretrained("roberta-base")
         self.tokenizer = RobertaTokenizer.from_pretrained('roberta-base', truncation=True, do_lower_case=True)
         self.use_CLS_emb=use_CLS_emb # 2 Options to get embeddings : CLS Token or Pool RoBERTa Output
-        self.use_one_caption=True #Bool to either use all image's captions or just one (the 1st).
+        self.use_one_caption=use_one_caption #Bool to either use all image's captions or just one (the 1st).
         self.max_len = max_len
         self.device  = "cuda" if torch.cuda.is_available() else "cpu"
         self.__set_seed__(seed = 318)
@@ -99,11 +99,13 @@ class RobertaClass(torch.nn.Module):
         pooled_embeddings = last_hidden_state.detach().mean(dim=1)
         return pooled_embeddings
 
-    def get_ImageCaptions_embedding(self,image_captions):
-        #A) get Roberta Output
-        last_hidden_state ,pooler_output = self.__get_Roberta_output__(self,image_captions)
+    def get_ImageCaptions_embedding(self,last_hidden_state ,pooler_output,image_captions=None):
+        
+        #A) get Roberta Output if needed
+        if last_hidden_state==None and pooler_output==None:    
+            last_hidden_state ,pooler_output = self.__get_Roberta_output__(self,image_captions)
 
-        #A) return desired embedding 
+        #B) return desired embedding 
         if self.use_CLS_emb :
             return self.__get_Robertra_cls_embeddings__(last_hidden_state ,pooler_output)
         else:
@@ -120,11 +122,19 @@ class RobertaClass(torch.nn.Module):
         Outputs:
             based on the embedding choice [cls or pool], we return the text(s) embedding(s)
         '''
-        tokenizer_output = __get_ImageCaption_Tokens__(image_captions)
+        tokenizer_output = self.__get_ImageCaption_Tokens__(image_captions)
         
-        last_hidden_state ,pooler_output = self.__get_Roberta_output__(image_captions)
+        last_hidden_state ,pooler_output = self.__get_Roberta_output__(tokenizer_output)
         return self.get_ImageCaptions_embedding(last_hidden_state ,pooler_output)
 
     
-    
+if __name__=='__main__':
+    text_emb_model = RobertaClass(max_len=350, use_CLS_emb=True,use_one_caption=False)
+    texts = [
+        "Saw met applauded favourite deficient engrossed concealed and her",
+        "Egyptian man fights aliens"
+         ]
+    # texts = ["Saw met applauded favourite deficient engrossed concealed and her"]
+    texts_emb = text_emb_model.forward(texts)
+    print(texts_emb.shape)
 
