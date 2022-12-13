@@ -161,11 +161,17 @@ class Experiment:
                 # Train D
                 d_error, d_pred_real, d_pred_fake = self._train_discriminator(real_data=real_batch, fake_data=fake_data)
 
-                # 2. Train Generator
+		        # 2. Train Generator
                 # Generate fake data
                 
                 noise_emb = noise_coco(N, self.cuda) #new noise emb but same text emb
-                dense_emb = self.EmbeddingEncoder_model(texts_emb+noise_emb) 
+                #concatinate the 2 embeddings
+                dense_emb = torch.cat( (texts_emb,noise_emb.reshape(N,-1)), 1)
+               
+                #Get the dense encoding
+                dense_emb = self.EmbeddingEncoder_model(dense_emb)
+                dense_emb = dense_emb.reshape(-1,N) #needed to work, TODO:investigate
+
                 fake_data = self.generator(dense_emb)
 
 
