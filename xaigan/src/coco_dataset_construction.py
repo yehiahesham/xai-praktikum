@@ -32,7 +32,7 @@ class COCODetection(data.Dataset):
     def __getitem__(self, index):
         im ,gt, captions,file_name, h, w, num_crowds = self.pull_item(index)
 
-        return im,(captions,file_name)
+        return im.float(),(captions,file_name)
 
     def pull_item(self, index):
         
@@ -73,7 +73,7 @@ class COCODetection(data.Dataset):
         for ann in ann_cap:
             captions.append(ann['caption'])
                                            #(1, 0, 2)? 
-        return torch.from_numpy(img).permute(2, 1, 0), target,captions,file_name, height, width, num_crowds
+        return torch.from_numpy(img).permute(1, 0, 2), target,captions,file_name, height, width, num_crowds
                                            #(?, ?, ?)
 
 

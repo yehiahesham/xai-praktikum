@@ -104,15 +104,15 @@ class Experiment:
         num_batches = len(loader)
 
         if self.cuda:
-            self.generator = self.generator.cuda()
-            self.discriminator = self.discriminator.cuda()
-            self.EmbeddingEncoder_model = self.EmbeddingEncoder_model.cuda()
-            self.loss = self.loss.cuda()
+            self.generator = self.generator.to(torch.float16).cuda()
+            self.discriminator = self.discriminator.to(torch.float16).cuda()
+            self.EmbeddingEncoder_model = self.EmbeddingEncoder_model.to(torch.float16).cuda()
+            self.loss = self.loss.to(torch.float16).cuda()
 
         if self.explainable:
             trained_data = Variable(next(iter(loader))[0])
             if self.cuda:
-                trained_data = trained_data.cuda()
+                trained_data = trained_data.to(torch.float16).cuda()
         else:
             trained_data = None
 
@@ -137,7 +137,7 @@ class Experiment:
                 N = len(real_batch)
 
                 batch_df = pd.DataFrame(real_batch)
-                batch_images = np.vstack(batch_df.iloc[:, 0]).astype(np.float)
+                batch_images = np.vstack(batch_df.iloc[:, 0]).astype(np.float16)
                 batch_images = torch.from_numpy(batch_images)
                 # batch_imgs = torch.tensor(batch_df.iloc[:, 0])
                 # captions = pd.DataFrame(real_batch[0][:][1:][0])
@@ -154,7 +154,7 @@ class Experiment:
                     texts_emb = torch.cat((texts_emb,text_emb), 0)
 
                 #concatinate the 2 embeddings
-                dense_emb = torch.cat((texts_emb,noise_emb.reshape(N,-1)), 1)
+                dense_emb = torch.cat((texts_emb,noise_emb.reshape(N,-1)), 1).to(torch.float16)
 
                 #Get the dense encoding
                 dense_emb = self.EmbeddingEncoder_model(dense_emb)
@@ -168,10 +168,13 @@ class Experiment:
                 
 
                 if self.cuda:
-                    batch_images = batch_images.cuda()
-                    fake_data = fake_data.cuda()
+                    batch_images = batch_images.to(torch.float16).cuda()
+                    fake_data = fake_data.to(torch.float16).cuda()
 
                 # Train D
+                batch_images = batch_images.reshape((128, 3, 256, 256))
+                print("Batch images", batch_images.size())
+                print("Fake data:", fake_data.size())
                 d_error, d_pred_real, d_pred_fake = self._train_discriminator(real_data=batch_images, fake_data=fake_data)
 
 		        # 2. Train Generator
@@ -179,7 +182,7 @@ class Experiment:
                 
                 noise_emb = noise_coco(N, self.cuda) #new noise emb but same text emb
                 #concatinate the 2 embeddings
-                dense_emb = torch.cat( (texts_emb,noise_emb.reshape(N,-1)), 1)
+                dense_emb = torch.cat( (texts_emb,noise_emb.reshape(N, -1)), 1)
                
                 #Get the dense encoding
                 dense_emb = self.EmbeddingEncoder_model(dense_emb)
@@ -189,7 +192,7 @@ class Experiment:
 
 
                 if self.cuda:
-                    fake_data = fake_data.cuda()
+                    fake_data = fake_data.to(torch.float16).cuda()
 
                 # Train G
                 g_error = self._train_generator(fake_data=fake_data, local_explainable=local_explainable,
@@ -267,19 +270,19 @@ class Experiment:
         :rtype: (torch.Tensor, torch.Tensor, torch.Tensor)
         """
         N = real_data.size(0)
-        real_data = real_data.float()
+        real_data = real_data.to(torch.float16)
 
         # Reset gradients
         self.d_optim.zero_grad()
 
         # 1.1 Train on Real Data
-        prediction_real = self.discriminator(real_data).view(-1)
+        prediction_real = self.discriminator(real_data).view(-1).to(torch.half)
 
         # Calculate error
         error_real = self.loss(prediction_real, values_target(size=(N,), value=self.real_label, cuda=self.cuda))
 
         # 1.2 Train on Fake Data
-        prediction_fake = self.discriminator(fake_data).view(-1)
+        prediction_fake = self.discriminator(fake_data).view(-1).to(torch.float16)
 
         # Calculate error
         error_fake = self.loss(prediction_fake, values_target(size=(N,), value=self.fake_label, cuda=self.cuda))
