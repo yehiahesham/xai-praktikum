@@ -23,7 +23,7 @@ class ExperimentEnums(Enum):
         "text_emb_model":RobertaClass,
         "EmbeddingEncoder":EmbeddingEncoderNetMSCOCO,
         "dataset": "mscoco",
-        "batchSize": 128,
+        "batchSize": 100,#128,
         "percentage": 1,
         "g_optim": optim.Adam,
         "d_optim": optim.Adam,

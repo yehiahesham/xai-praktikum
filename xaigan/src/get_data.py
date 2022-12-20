@@ -3,7 +3,7 @@ from models.configurations import configurations
 from coco_dataset_construction import COCODetection
 data_folder = "./data"
 
-def get_loader(batchSize=1, percentage=1, dataset="mscoco"):
+def get_loader(batchSize=100, percentage=1, dataset="mscoco"):
     
     if dataset == "mscoco":
         # val_info = r"D:\Documents\TUM\WS2022\XAI\MS_COCO\annotations_trainval2017\annotations\instances_val2017.json"
