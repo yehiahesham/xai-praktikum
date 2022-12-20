@@ -38,13 +38,15 @@ class GeneratorNetMSCOCO(nn.Module, ABC):
         )
 
     def forward(self, x):
+        #print("\tdense_emb/Gener Input shape is",x.shape)
         x = x[:,:, np.newaxis, np.newaxis]
+        #print("\t1 maniplulation to that input, it becomes is",x.shape)
         x = self.input_layer(x)
-        print("Gen i/p layer: ", x.size())
+        #print("output of Gen input_layer: ", x.size())
         x = self.hidden1(x)
-        print("Gen hidden1 layer: ", x.size())
+        #print("Gen hidden1 layer: ", x.size())
         x = self.hidden2(x)
-        print("Gen hidden2 layer: ", x.size())
+        #print("Gen hidden2 layer: ", x.size())
         x = self.out(x)
-        print("Gen out layer: ", x.size())
+        #print("Gen out layer: ", x.size())
         return x

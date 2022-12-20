@@ -32,7 +32,7 @@ class DiscriminatorNetMSCOCO(nn.Module, ABC):
         )
 
     def forward(self, x):
-        print("x before input layer", x.size())
+        #print("x before input layer", x.size())
         x = self.input_layer(x)
         x = self.hidden1(x)
         x = self.hidden2(x)

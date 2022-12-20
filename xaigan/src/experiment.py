@@ -141,7 +141,7 @@ class Experiment:
                 batch_images = torch.from_numpy(batch_images)
                 # batch_imgs = torch.tensor(batch_df.iloc[:, 0])
                 # captions = pd.DataFrame(real_batch[0][:][1:][0])
-                # print(captions)
+                # #print(captions)
 
                 # 0. Pass (Text+Noise) embeddings >  EmbeddingEncoder_NN > Generator_NN
                 noise_emb = noise_coco(N, self.cuda)
@@ -163,7 +163,7 @@ class Experiment:
                 # 1. Train Discriminator
                 # Generate fake data and detach (so gradients are not calculated for generator)
                 fake_data = self.generator(dense_emb).detach()
-                print("Generator output: ", fake_data.size())
+                #print("Generator output: ", fake_data.size())
                 
 
                 if self.cuda:
@@ -172,8 +172,8 @@ class Experiment:
 
                 # Train D
                 batch_images = batch_images.reshape((N, 3, 256, 256))
-                print("Batch images", batch_images.size())
-                print("Fake data:", fake_data.size())
+                #print("Batch images", batch_images.size())
+                #print("Fake data:", fake_data.size())
                 d_error, d_pred_real, d_pred_fake = self._train_discriminator(real_data=batch_images, fake_data=fake_data)
 
 		        # 2. Train Generator

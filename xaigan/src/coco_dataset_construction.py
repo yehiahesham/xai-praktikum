@@ -88,11 +88,11 @@ if __name__=='__main__':
     dataset = COCODetection(val_image, val_info,val_cap)
     loader = DataLoader(dataset)
     for n, (img,captions,file_name) in enumerate(loader):
-        print(n)
+        #print(n)
         img = np.uint8(img.squeeze().numpy())
         #cv2.imshow('img', img)
-        print(file_name)
-        print(captions)
+        #print(file_name)
+        #print(captions)
         # cv2.imshow('img', img)
         # cv2.waitKey(500)
         
