@@ -20,4 +20,13 @@ TUM WiSe 22/23 - Explainable AI Praktikum Repository
   
 3. Using  colab terminal, set an env varaibled with your Personal access token  `export GIT_TOKEN=<Personal access>`
 4. Clone the repo via `git clone https://$GIT_TOKEN@github.com/theVirus94/xai-praktikum`
-5. 
+
+## Create a new Enviroment 
+1. Create a folder in your drive to host all your virtual enviroments Ex `mkdir /drive/MyDrive/YehiaEnv`
+2. Create a new env <Env_name> in  envs folder by command `cd /drive/MyDrive/YehiaEnv && virtualenv XAI_1` 
+3. Activate this env run `source /drive/MyDrive/YehiaEnv/XAI_1/bin/activate`
+
+ 
+  
+ 
+
