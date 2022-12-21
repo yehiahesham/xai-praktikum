@@ -9,7 +9,7 @@ TUM WiSe 22/23 - Explainable AI Praktikum Repository
 
 `conda env update -n my_env --file ENV.yaml`
 
-#Using Colab and Github
+# Using Colab and Github
 
 1. create a Github folder in your drive
 2. Create a GitHub Personal access token 
