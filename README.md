@@ -10,15 +10,26 @@ TUM WiSe 22/23 - Explainable AI Praktikum Repository
 `conda env update -n my_env --file ENV.yaml`
 
 ## Create the enviroment from scratch :
-Run the following commands to create a new enviroment, install dependencies,  and run the project
+ ### Run the following commands to create a new enviroment: 
 ```
 conda create --name XAI_GAN python=3.8
 conda activate XAI_GAN
-conda install -c pytorch pytorch torchvision torchaudio cpuonly captum -y
+```
+### Install dependencies:
+
+Pytorch-CPU:  `conda install -c pytorch pytorch torchvision torchaudio cpuonly `
+
+Pytorch-GPU[Cuda11.7]:  `conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia`
+
+Pytorch-GPU[Cuda11.6]:  `conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia`
+
+```
+conda install -c pytorch captum -y
 conda install -c conda-forge pycocotools opencv -y 
 conda install transformers tensorboardX -y
-python main.py
 ```
+###  Run the project : 
+``` python main.py ```
 # Using Colab and Github
 
 1. create a Github folder in your drive
