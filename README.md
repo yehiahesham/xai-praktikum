@@ -26,7 +26,7 @@ Pytorch-GPU[Cuda11.6]:  `conda install pytorch torchvision torchaudio pytorch-cu
 ```
 conda install -c pytorch captum -y
 conda install -c conda-forge pycocotools opencv -y 
-conda install transformers tensorboardX -y
+conda install transformers tensorboardX pandas -y
 ```
 ###  Run the project : 
 ``` python main.py ```
