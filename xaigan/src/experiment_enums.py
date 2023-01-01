@@ -1,6 +1,6 @@
 from enum import Enum
-from models.generators import GeneratorNetMSCOCO
-from models.discriminators import  DiscriminatorNetMSCOCO
+from models.generators import GeneratorNetMSCOCO,GeneratorNet_TEXT2IMG_MSCOCO
+from models.discriminators import  DiscriminatorNetMSCOCO,DiscriminatorNet_TEXT2IMG_MSCOCO
 from models.text_embedding_models import RobertaClass
 from models.encoders import EmbeddingEncoderNetMSCOCO
 
@@ -18,8 +18,12 @@ class ExperimentEnums(Enum):
         "text_max_len":350,         #RobertaClass's param
         "use_one_caption": True,    #RobertaClass's param
         "use_CLS_emb":False,         #RobertaClass's param
-        "generator": GeneratorNetMSCOCO,
-        "discriminator": DiscriminatorNetMSCOCO,
+
+        # "generator": GeneratorNetMSCOCO,
+        # "discriminator": DiscriminatorNetMSCOCO,
+        "generator": GeneratorNet_TEXT2IMG_MSCOCO,
+        "discriminator": DiscriminatorNet_TEXT2IMG_MSCOCO,
+
         "text_emb_model":RobertaClass,
         "EmbeddingEncoder":EmbeddingEncoderNetMSCOCO,
         "dataset": "mscoco",
