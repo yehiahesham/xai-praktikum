@@ -48,7 +48,11 @@ class Experiment:
         self.text_emb_model = self.type["text_emb_model"]().to(self.device)
         self.EmbeddingEncoder_model = self.type["EmbeddingEncoder"](
             self.noise_emb_sz,self.text_emb_sz,self.Encoder_emb_sz).to(self.device)
-            
+        
+        #freezing text encoder weights
+        for param in self.text_emb_model.parameters():
+          param.requires_grad = False    
+          
         #Set HyperParamters for Training 
         self.g_optim = self.type["g_optim"](self.generator.parameters(), lr=self.type["glr"], betas=(0.5, 0.99))
         self.d_optim = self.type["d_optim"](self.discriminator.parameters(), lr=self.type["dlr"], betas=(0.5, 0.99))

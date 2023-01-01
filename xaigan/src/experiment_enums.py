@@ -17,7 +17,7 @@ class ExperimentEnums(Enum):
         "text_emb_sz" : 768, #TODO: #RobertaClass's param
         "text_max_len":350,         #RobertaClass's param
         "use_one_caption": True,    #RobertaClass's param
-        "use_CLS_emb":True,         #RobertaClass's param
+        "use_CLS_emb":False,         #RobertaClass's param
         "generator": GeneratorNetMSCOCO,
         "discriminator": DiscriminatorNetMSCOCO,
         "text_emb_model":RobertaClass,
