@@ -1,10 +1,13 @@
-from src.utils.vector_utils import noise_coco
+import numpy as np
+import os
 import torch
 import argparse
-import numpy as np
-from src.models.generators import GeneratorNet_TEXT2IMG_MSCOCO
-import os
+import random, string
 from PIL import Image
+from utils.vector_utils import noise_coco
+from models.generators import GeneratorNet_TEXT2IMG_MSCOCO
+from models.text_embedding_models import RobertaClass
+from models.encoders import EmbeddingEncoderNetMSCOCO
 
 
 def main():
@@ -21,6 +24,19 @@ def main():
     args = parser.parse_args()
     calculate_metrics_coco(path=args.file, numberOfSamples=args.number_of_samples)
 
+def get_random_text(number,captions_json_path='xaigan/src/evaluation/captions_val2014.json'):
+    import random,json
+    captions=None
+    with open(captions_json_path) as f:
+        captions = json.load(f)
+        captions=captions['annotations']   
+    N=len(captions)
+    return [captions[random.randint(0, N)]['caption'] for i in range(0,number)]
+            
+    
+
+    
+        
 
 def calculate_metrics_coco(path, numberOfSamples=2048):
     """
@@ -51,15 +67,41 @@ def generate_samples_coco(number, path_model, path_output):
     :return: None
     :rtype: None
     """
-    generator = GeneratorNet_TEXT2IMG_MSCOCO()
+    random_texts=get_random_text(number) #usig MSCOC-2014 val set captions
+    noise_emb_sz,text_emb_sz=100,768
+    Encoder_emb_sz =(noise_emb_sz+text_emb_sz)//2 #Hyper-paramter
+
+    #Declare & load Models' weights
+    text_emb_model = RobertaClass()
+    generator = GeneratorNet_TEXT2IMG_MSCOCO(n_features=Encoder_emb_sz)
+    EmbeddingEncoder = EmbeddingEncoderNetMSCOCO(noise_emb_sz,text_emb_sz,Encoder_emb_sz)
+
     generator.load_state_dict(torch.load(path_model, map_location=lambda storage, loc: storage))
+    EmbeddingEncoder.load_state_dict(torch.load('./results/mscoco/Mscoco/EmbeddingEncoder.pt', map_location=lambda storage, loc: storage))
+    # EmbeddingEncoder_old_mode=EmbeddingEncoder.training
+    # generator_old_mode=generator.training
+    EmbeddingEncoder.eval()
+    generator.eval()
+    text_emb_model.eval()
+    #todo: make sure we are in evualuation mode, batch Normaliation inference variables need to be used
+    #todo: make sure of the shapes of random_text_emb,noise,dense_emb if they need reshaping
+    #todo: randomly pick or generate a better rand sentence 
     for i in range(number):
-        sample = generator(noise_coco(1, False)).detach().squeeze(0).numpy()
+        noise = noise_coco(1, False)
+        print(random_texts[i])
+        random_text_emb = text_emb_model.forward([random_texts[i]]).detach() 
+        dense_emb = torch.cat((random_text_emb,noise.reshape(1,-1)), 1)
+        dense_emb = EmbeddingEncoder(dense_emb).detach()
+        dense_emb = dense_emb.reshape(1,-1)
+        sample = generator(dense_emb).detach().squeeze(0).numpy()
         sample = np.transpose(sample, (1, 2, 0))
         sample = ((sample/2) + 0.5) * 255
         sample = sample.astype(np.uint8)
         image = Image.fromarray(sample)
         image.save(f'{path_output}/{i}.jpg')
+    
+    # if EmbeddingEncoder_old_mode:  EmbeddingEncoder.train()
+    # if generator_old_mode:         generator_old_mode.train()
     return
 
 

@@ -40,7 +40,6 @@ class Experiment:
 
         #Calcualted Parameters
         self.Encoder_emb_sz =(self.noise_emb_sz+self.text_emb_sz)//2 #Hyper-paramter
-        self.EmbEncModel_inputs = self.noise_emb_sz,self.text_emb_sz,self.Encoder_emb_sz
 
         #Declare & intialize Models
         self.generator = self.type["generator"](n_features=self.Encoder_emb_sz).to(self.device)
@@ -97,6 +96,8 @@ class Experiment:
         #Get the dense encoding
         test_dense_emb = self.EmbeddingEncoder_model(test_dense_emb )
         test_dense_emb = test_dense_emb.reshape(self.samples,-1)  #needed to work, TODO:investigate 
+        # test_dense_emb = test_dense_emb.reshape(-1,self.Encoder_emb_sz)  #Same i think
+        
 
         self.generator.apply(weights_init)
         self.discriminator.apply(weights_init)
@@ -215,6 +216,9 @@ class Experiment:
                     )
 
         logger.save_models(generator=self.generator)
+        logger.save_model (model=self.EmbeddingEncoder_model,name="EmbeddingEncoder")
+        logger.save_model (model=self.discriminator,name="discriminator")
+
         logger.save_errors(g_loss=G_losses, d_loss=D_losses)
         timeTaken = time.time() - start_time
         test_images = self.generator(test_dense_emb)

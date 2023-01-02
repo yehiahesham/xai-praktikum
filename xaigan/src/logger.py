@@ -112,6 +112,9 @@ class Logger:
     def save_models(self, generator):
         torch.save(generator.state_dict(), f'{self.data_subdir}/generator.pt')
 
+    def save_model(self, model,name="generator"):
+        torch.save(model.state_dict(), f'{self.data_subdir}/{name}.pt')
+
     def close(self):
         self.writer.close()
 
