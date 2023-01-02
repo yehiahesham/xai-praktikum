@@ -77,25 +77,25 @@ class GeneratorNet_TEXT2IMG_MSCOCO(nn.Module, ABC):
             )
 
             self.hidden1 = nn.Sequential(
-                nn.ConvTranspose2d(d2, d4, 5, 2, 1, bias=False),
+                nn.ConvTranspose2d(d2, d4, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(d4),
                 nn.ReLU(True),
             )
 
             self.hidden2 = nn.Sequential(
-                nn.ConvTranspose2d(d4,d8, 5, 2, 1, bias=False),
+                nn.ConvTranspose2d(d4,d8, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(d8),
                 nn.ReLU(True),
             )
 
             self.hidden3 = nn.Sequential(
-                nn.ConvTranspose2d(d8,d16, 5, 2, 1, bias=False),
+                nn.ConvTranspose2d(d8,d16, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(d16),
                 nn.ReLU(True),
             )
 
             self.out = nn.Sequential(
-                nn.ConvTranspose2d(d16, nc, 5, 2, 1, bias=False),
+                nn.ConvTranspose2d(d16, nc, 4, 2, 1, bias=False),
                 nn.Tanh()
             )
 

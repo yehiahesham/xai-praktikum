@@ -34,7 +34,7 @@ class ExperimentEnums(Enum):
         "glr": 0.0002,
         "dlr": 0.0002,
         "loss": nn.BCELoss(),
-        "epochs": 50
+        "epochs": 15
     }
    
 

@@ -56,29 +56,34 @@ class DiscriminatorNet_TEXT2IMG_MSCOCO(nn.Module):
         self.hidden1 = nn.Sequential(
             nn.Conv2d(3, 32, 5, 2, 1, bias=False),
             nn.BatchNorm2d(32),
-            nn.LeakyReLU()
+            nn.LeakyReLU(),
+            nn.Dropout(0.2)
+
         )
         self.hidden2 = nn.Sequential(
             nn.Conv2d(32, 64, 5, 2, 1, bias=False),
             nn.BatchNorm2d(64),
-            nn.LeakyReLU()
+            nn.LeakyReLU(),
+            nn.Dropout(0.2)
         )
 
         self.hidden3 = nn.Sequential(
             nn.Conv2d(64, 128, 5, 2, 1, bias=False),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU() 
+            nn.LeakyReLU() ,
+            nn.Dropout(0.2)
         )
 
         self.hidden4 = nn.Sequential(
             nn.Conv2d(128, 256, 5, 2, 1, bias=False),
             nn.BatchNorm2d(256),
-            nn.LeakyReLU()
+            nn.LeakyReLU(),
+            nn.Dropout(0.2)
         )
         self.out = nn.Sequential(
-	    nn.Conv2d(256, 1, 15, 1, 0, bias=False),
-	    nn.Sigmoid()
-	)
+            nn.Conv2d(256, 1, 15, 1, 0, bias=False),
+            nn.Sigmoid()
+	    )
 
     def forward(self, x):
         x = self.hidden1(x)

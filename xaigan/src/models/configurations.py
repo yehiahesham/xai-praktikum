@@ -5,7 +5,8 @@ import os
 configurations= {   
     "datasets":{
         "MS_COCO":{
-            "path":"/home/yehia/Documents/MS_COCO",
+            "path": "C:/Users/caner/Desktop/MS_COCO",
+            # "path":"/home/yehia/Documents/MS_COCO",
             "train_images__path":"root",
             "test_image_info_path": "image_info_test2017/annotations",
             "trainval_annotations": "annotations_trainval2017/annotations",

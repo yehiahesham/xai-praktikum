@@ -1,8 +1,8 @@
-from utils.vector_utils import noise_coco
+from src.utils.vector_utils import noise_coco
 import torch
 import argparse
 import numpy as np
-from models.generators import GeneratorNetMSCOCO
+from src.models.generators import GeneratorNet_TEXT2IMG_MSCOCO
 import os
 from PIL import Image
 
@@ -51,7 +51,7 @@ def generate_samples_coco(number, path_model, path_output):
     :return: None
     :rtype: None
     """
-    generator = GeneratorNetMSCOCO()
+    generator = GeneratorNet_TEXT2IMG_MSCOCO()
     generator.load_state_dict(torch.load(path_model, map_location=lambda storage, loc: storage))
     for i in range(number):
         sample = generator(noise_coco(1, False)).detach().squeeze(0).numpy()
