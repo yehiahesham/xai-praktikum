@@ -14,23 +14,27 @@ class EmbeddingEncoderNetMSCOCO(nn.Module, ABC):
             nn.Linear(self.input_features, ngf * 8, bias=False),
             nn.BatchNorm1d(ngf * 8),
             nn.ReLU(True),
+            nn.Dropout(0.2)
         )
 
         self.hidden1 = nn.Sequential(
             nn.Linear(ngf * 8, ngf * 4,bias=False),
             nn.BatchNorm1d(ngf * 4),
             nn.ReLU(True),
+            nn.Dropout(0.2)
         )
 
         self.hidden2 = nn.Sequential(
             nn.Linear( ngf * 4, ngf * 2, bias=False),
             nn.BatchNorm1d(ngf * 2),
             nn.ReLU(True),
+            nn.Dropout(0.2)
         )
 
         self.out = nn.Sequential(
             nn.Linear(ngf * 2, self.output_features,  bias=False),
-            nn.ReLU(True)
+            nn.ReLU(True),
+            nn.Dropout(0.2)
         )
 
     def forward(self, x):
