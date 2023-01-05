@@ -1,35 +1,47 @@
 # xai-praktikum
 TUM WiSe 22/23 - Explainable AI Praktikum Repository
 
-## Create the environment from the environment.yml file:
+# CONDA 
+## Create Enviroment and Install Lib via CONDA :
 
-`conda env create -f environment.yml`
-
-## Update environment from the environment.yml file:
-
-`conda env update -n my_env --file ENV.yaml`
-
-## Create the enviroment from scratch :
- ### Run the following commands to create a new enviroment: 
 ```
 conda create --name XAI_GAN python=3.8
 conda activate XAI_GAN
 ```
-### Install dependencies:
+Pytorch-CPU:
+`conda install -c pytorch pytorch torchvision torchaudio cpuonly `
 
-Pytorch-CPU:  `conda install -c pytorch pytorch torchvision torchaudio cpuonly `
+Pytorch-GPU[Cuda11.7]:
+`conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia`
 
-Pytorch-GPU[Cuda11.7]:  `conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia`
-
-Pytorch-GPU[Cuda11.6]:  `conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia`
+Pytorch-GPU[Cuda11.6]:
+`conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia`
 
 ```
 conda install -c pytorch captum -y
 conda install -c conda-forge pycocotools opencv -y 
 conda install transformers tensorboardX pandas -y
 ```
-###  Run the project : 
-``` python main.py ```
+
+Create the environment from the environment.yml file: 
+
+`conda env create -f environment.yml`
+
+Update environment from the environment.yml file: 
+
+`conda env update -n my_env --file ENV.yaml`
+
+
+# PIP
+## Create Env and Install dependencies via PIP :
+
+```
+python3 -m venv XAI_1
+source XAI_1/bin/activate
+pip3 install torch torchvision torchaudio
+pip install transformers tensorboardX pandas pycocotools captum  opencv-python
+```
+
 # Using Colab and Github
 
 1. create a Github folder in your drive
@@ -47,7 +59,7 @@ conda install transformers tensorboardX pandas -y
 2. Create a new env <Env_name> in  envs folder by command `cd /content/drive/MyDrive/YehiaEnv && virtualenv XAI_1` 
 3. Activate this env run `source /content/drive/MyDrive/YehiaEnv/XAI_1/bin/activate`
 
- 
-  
+ #  Run the project : 
+``` python main.py ``` 
  
 
