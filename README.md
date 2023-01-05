@@ -2,7 +2,7 @@
 TUM WiSe 22/23 - Explainable AI Praktikum Repository
 
 # CONDA 
-## Create Enviroment and Install Lib via CONDA :
+## Create Env and Install Libs via CONDA :
 
 ```
 conda create --name XAI_GAN python=3.8
@@ -33,7 +33,7 @@ Update environment from the environment.yml file:
 
 
 # PIP
-## Create Env and Install dependencies via PIP :
+## Create Env and Install Libs via PIP :
 
 ```
 python3 -m venv XAI_GAN
