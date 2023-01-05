@@ -6,12 +6,14 @@ configurations= {
     "datasets":{
         "MS_COCO":{
             # "path": "C:/Users/caner/Desktop/MS_COCO",
-            "path":"/home/yehia/Documents/MS_COCO",
+            # "path":"/home/yehia/Documents/MS_COCO",
+            "path":"/home2/yehia.ahmed/MS-COCO",
             "train_images__path":"root",
             "test_image_info_path": "image_info_test2017/annotations",
             "trainval_annotations": "annotations_trainval2017/annotations",
-            "val_images": "val2017/val2017",
+            "val_images"  : "val2017/val2017",
             "train_images": "train2017/train2017",
+            "test_images" : "test2017/test2017",
             "classes": ('person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
                 'train', 'truck', 'boat', 'traffic light', 'fire hydrant',
                 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog',

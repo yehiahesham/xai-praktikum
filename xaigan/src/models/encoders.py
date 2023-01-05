@@ -4,7 +4,7 @@ import numpy as np
 
     
 class EmbeddingEncoderNetMSCOCO(nn.Module, ABC):
-    def __init__(self,noise_emb_sz,text_emb_sz,generator_input_emb_sz=100):
+    def __init__(self,noise_emb_sz,text_emb_sz=868,generator_input_emb_sz=100):
         super(EmbeddingEncoderNetMSCOCO, self).__init__()
         self.input_features  = noise_emb_sz+text_emb_sz
         self.output_features = generator_input_emb_sz

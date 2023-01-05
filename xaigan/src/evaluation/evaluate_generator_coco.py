@@ -5,7 +5,7 @@ import argparse
 import random, string
 from PIL import Image
 from utils.vector_utils import noise_coco
-from models.generators import GeneratorNet_TEXT2IMG_MSCOCO
+from models.generators import GeneratorNet_TEXT2IMG_MSCOCO,Encoder_GeneratorNet_TEXT2IMG_MSCOCO
 from models.text_embedding_models import RobertaClass
 from models.encoders import EmbeddingEncoderNetMSCOCO
 
@@ -24,12 +24,15 @@ def main():
     args = parser.parse_args()
     calculate_metrics_coco(path=args.file, numberOfSamples=args.number_of_samples)
 
-def get_random_text(number,captions_json_path='xaigan/src/evaluation/captions_val2014.json'):
+def read_random_captionsFile(captions_json_path='./xaigan/src/evaluation/captions_val2014.json'):
     import random,json
     captions=None
     with open(captions_json_path) as f:
         captions = json.load(f)
         captions=captions['annotations']   
+    return captions
+
+def get_random_text(number,captions):
     N=len(captions)
     return [captions[random.randint(0, N)]['caption'] for i in range(0,number)]
             
@@ -67,22 +70,25 @@ def generate_samples_coco(number, path_model, path_output):
     :return: None
     :rtype: None
     """
-    random_texts=get_random_text(number) #usig MSCOC-2014 val set captions
+    random_texts = read_random_captionsFile()
+    random_texts = get_random_text(number,random_texts) #using MSCOC-2014 val set captions
     noise_emb_sz,text_emb_sz=100,768
     Encoder_emb_sz =(noise_emb_sz+text_emb_sz)//2 #Hyper-paramter
 
     #Declare & load Models' weights
     text_emb_model = RobertaClass()
-    generator = GeneratorNet_TEXT2IMG_MSCOCO(n_features=Encoder_emb_sz)
-    EmbeddingEncoder = EmbeddingEncoderNetMSCOCO(noise_emb_sz,text_emb_sz,Encoder_emb_sz)
-
-    generator.load_state_dict(torch.load(path_model, map_location=lambda storage, loc: storage))
-    EmbeddingEncoder.load_state_dict(torch.load('./results/mscoco/Mscoco/EmbeddingEncoder.pt', map_location=lambda storage, loc: storage))
+    generator = Encoder_GeneratorNet_TEXT2IMG_MSCOCO(
+            noise_emb_sz = noise_emb_sz,
+            text_emb_sz  = text_emb_sz,
+            n_features   = Encoder_emb_sz)
+        
+    generator.load_state_dict(torch.load(path_model, map_location=lambda storage, loc: storage)['model_state_dict'])
+    
     # EmbeddingEncoder_old_mode=EmbeddingEncoder.training
     # generator_old_mode=generator.training
-    EmbeddingEncoder.eval()
     generator.eval()
-    text_emb_model.eval()
+    text_emb_model.eval() 
+    text_emb_model.device='cpu'
     #todo: make sure we are in evualuation mode, batch Normaliation inference variables need to be used
     #todo: make sure of the shapes of random_text_emb,noise,dense_emb if they need reshaping
     #todo: randomly pick or generate a better rand sentence 
@@ -91,7 +97,6 @@ def generate_samples_coco(number, path_model, path_output):
         print(random_texts[i])
         random_text_emb = text_emb_model.forward([random_texts[i]]).detach() 
         dense_emb = torch.cat((random_text_emb,noise.reshape(1,-1)), 1)
-        dense_emb = EmbeddingEncoder(dense_emb).detach()
         dense_emb = dense_emb.reshape(1,-1)
         sample = generator(dense_emb).detach().squeeze(0).numpy()
         sample = np.transpose(sample, (1, 2, 0))

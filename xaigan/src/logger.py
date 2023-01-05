@@ -115,6 +115,14 @@ class Logger:
     def save_model(self, model,name="generator"):
         torch.save(model.state_dict(), f'{self.data_subdir}/{name}.pt')
 
+    def save_model(self, model,name,epoch,loss,optimizer=None):
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            #'optimizer_state_dict': optimizer.state_dict(),
+            'loss': loss,
+            }, f'{self.data_subdir}/{name}.pt')
+
     def close(self):
         self.writer.close()
 
