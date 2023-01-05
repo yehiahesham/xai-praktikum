@@ -97,121 +97,121 @@ class Experiment:
         self.generator.apply(weights_init)
         self.discriminator.apply(weights_init)
 
-        # loader = get_loader(self.type["batchSize"], self.type["percentage"], self.type["dataset"])
-        # num_batches = len(loader)
+        loader = get_loader(self.type["batchSize"], self.type["percentage"], self.type["dataset"])
+        num_batches = len(loader)
 
-        # if self.cuda:
-        #     self.generator = self.generator.cuda()
-        #     self.discriminator = self.discriminator.cuda()
-        #     self.loss = self.loss.cuda()
+        if self.cuda:
+            self.generator = self.generator.cuda()
+            self.discriminator = self.discriminator.cuda()
+            self.loss = self.loss.cuda()
 
-        # if self.explainable:
-        #     trained_data = Variable(next(iter(loader))[0])
-        #     if self.cuda:
-        #         trained_data = trained_data.cuda()
-        # else:
-        #     trained_data = None
+        if self.explainable:
+            trained_data = Variable(next(iter(loader))[0])
+            if self.cuda:
+                trained_data = trained_data.cuda()
+        else:
+            trained_data = None
 
-        # # track losses
-        # G_losses = []
-        # D_losses = []
-        # prev_g_error=10000
-        # prev_d_error=10000
+        # track losses
+        G_losses = []
+        D_losses = []
+        prev_g_error=10000
+        prev_d_error=10000
 
-        # local_explainable = False
+        local_explainable = False
 
-        # # Start training
-        # for epoch in range(1, self.epochs + 1):
+        # Start training
+        for epoch in range(1, self.epochs + 1):
 
-        #     if self.explainable and (epoch - 1) == explanationSwitch:
+            if self.explainable and (epoch - 1) == explanationSwitch:
                 
 
-        #         if self.type["dataset"] == "mscoco":
-        #             self.generator.out.register_backward_hook(explanation_hook_coco)
+                if self.type["dataset"] == "mscoco":
+                    self.generator.out.register_backward_hook(explanation_hook_coco)
 
-        #         local_explainable = False#True
+                local_explainable = False#True
             
-        #     for n_batch, (real_batch) in enumerate(loader):
-        #         N = len(real_batch)
+            for n_batch, (real_batch) in enumerate(loader):
+                N = len(real_batch)
 
-        #         batch_df = pd.DataFrame(real_batch)
-        #         batch_images = np.vstack(batch_df.iloc[:, 0])#.astype(np.float16)
-        #         batch_images = torch.from_numpy(batch_images)
+                batch_df = pd.DataFrame(real_batch)
+                batch_images = np.vstack(batch_df.iloc[:, 0])#.astype(np.float16)
+                batch_images = torch.from_numpy(batch_images)
 
-        #         # 0. Pass (Text+Noise) embeddings >  EmbeddingEncoder_NN > Generator_NN
-        #         noise_emb = noise_coco(N, self.cuda)
+                # 0. Pass (Text+Noise) embeddings >  EmbeddingEncoder_NN > Generator_NN
+                noise_emb = noise_coco(N, self.cuda)
                 
-        #         texts_emb = self.text_emb_model.forward(batch_df.iloc[:, 1][0])  #captions/image are on same col
-        #         for i in range(1,N):
-        #             text_emb  = self.text_emb_model.forward(batch_df.iloc[i, 1][0])
-        #             texts_emb = torch.cat((texts_emb,text_emb), 0)
+                texts_emb = self.text_emb_model.forward(batch_df.iloc[:, 1][0])  #captions/image are on same col
+                for i in range(1,N):
+                    text_emb  = self.text_emb_model.forward(batch_df.iloc[i, 1][0])
+                    texts_emb = torch.cat((texts_emb,text_emb), 0)
 
-        #         #concatinate the 2 embeddings
-        #         dense_emb = torch.cat((texts_emb,noise_emb.reshape(N,-1)), 1)#.to(torch.float16)
+                #concatinate the 2 embeddings
+                dense_emb = torch.cat((texts_emb,noise_emb.reshape(N,-1)), 1)#.to(torch.float16)
 
-        #         # 1. Train Discriminator
-        #         # Generate fake data and detach (so gradients are not calculated for generator)
-        #         fake_data = self.generator(dense_emb).detach()
-        #         #print("Generator output: ", fake_data.size())
+                # 1. Train Discriminator
+                # Generate fake data and detach (so gradients are not calculated for generator)
+                fake_data = self.generator(dense_emb).detach()
+                #print("Generator output: ", fake_data.size())
                 
 
-        #         if self.cuda:
-        #             batch_images = batch_images.cuda()
-        #             fake_data = fake_data.cuda()
+                if self.cuda:
+                    batch_images = batch_images.cuda()
+                    fake_data = fake_data.cuda()
 
-        #         # Train D
-        #         batch_images = batch_images.reshape((N, 3, 256, 256))
-        #         #print("Batch images", batch_images.size())
-        #         #print("Fake data:", fake_data.size())
-        #         d_error, d_pred_real, d_pred_fake = self._train_discriminator(real_data=batch_images, fake_data=fake_data)
+                # Train D
+                batch_images = batch_images.reshape((N, 3, 256, 256))
+                #print("Batch images", batch_images.size())
+                #print("Fake data:", fake_data.size())
+                d_error, d_pred_real, d_pred_fake = self._train_discriminator(real_data=batch_images, fake_data=fake_data)
 
-		#         # 2. Train Generator
-        #         # Generate fake data
+		        # 2. Train Generator
+                # Generate fake data
                 
-        #         noise_emb = noise_coco(N, self.cuda) #new noise emb but same text emb
+                noise_emb = noise_coco(N, self.cuda) #new noise emb but same text emb
                 
-        #         #concatinate the 2 embeddings
-        #         dense_emb = torch.cat( (texts_emb,noise_emb.reshape(N, -1)), 1)
+                #concatinate the 2 embeddings
+                dense_emb = torch.cat( (texts_emb,noise_emb.reshape(N, -1)), 1)
                
-        #         fake_data = self.generator(dense_emb) #generate a new fake image to train the Generator & Encoder
+                fake_data = self.generator(dense_emb) #generate a new fake image to train the Generator & Encoder
 
 
-        #         if self.cuda:
-        #             fake_data = fake_data.cuda()
+                if self.cuda:
+                    fake_data = fake_data.cuda()
 
-        #         # Train G & Encoder if exist
-        #         g_error = self._train_generator(fake_data=fake_data, local_explainable=local_explainable,
-        #                                         trained_data=trained_data)
+                # Train G & Encoder if exist
+                g_error = self._train_generator(fake_data=fake_data, local_explainable=local_explainable,
+                                                trained_data=trained_data)
                 
                             
-        #         # Save models if their losses are smaller 
-        #         if(g_error<=prev_g_error):
-        #             logger.save_model(model=self.generator,name="generator",epoch=epoch,loss=g_error)
-        #         if(d_error<=prev_d_error):
-        #             logger.save_model(model=self.discriminator,name="discriminator",epoch=epoch,loss=d_error)
+                # Save models if their losses are smaller 
+                if(g_error<=prev_g_error):
+                    logger.save_model(model=self.generator,name="generator",epoch=epoch,loss=g_error)
+                if(d_error<=prev_d_error):
+                    logger.save_model(model=self.discriminator,name="discriminator",epoch=epoch,loss=d_error)
                 
-        #         prev_d_error=d_error
-        #         prev_g_error=g_error
+                prev_d_error=d_error
+                prev_g_error=g_error
                 
-        #         # Save Losses for plotting later
-        #         G_losses.append(g_error.item())
-        #         D_losses.append(d_error.item())
+                # Save Losses for plotting later
+                G_losses.append(g_error.item())
+                D_losses.append(d_error.item())
 
-        #         logger.log(d_error, g_error, epoch, n_batch, num_batches)
+                logger.log(d_error, g_error, epoch, n_batch, num_batches)
 
-        #         # Display status Logs
-        #         if n_batch % (num_batches // logging_frequency) == 0:
-        #             logger.display_status(
-        #                 epoch, self.epochs, n_batch, num_batches,
-        #                 d_error, g_error, d_pred_real, d_pred_fake
-        #             )
+                # Display status Logs
+                if n_batch % (num_batches // logging_frequency) == 0:
+                    logger.display_status(
+                        epoch, self.epochs, n_batch, num_batches,
+                        d_error, g_error, d_pred_real, d_pred_fake
+                    )
                 
 
-        # # logger.save_models(generator=self.generator)
-        # # logger.save_model (model=self.EmbeddingEncoder_model,name="EmbeddingEncoder")
-        # # logger.save_model (model=self.discriminator,name="discriminator")
+        # logger.save_models(generator=self.generator)
+        # logger.save_model (model=self.EmbeddingEncoder_model,name="EmbeddingEncoder")
+        # logger.save_model (model=self.discriminator,name="discriminator")
 
-        # logger.save_errors(g_loss=G_losses, d_loss=D_losses)
+        logger.save_errors(g_loss=G_losses, d_loss=D_losses)
         timeTaken = time.time() - start_time
         test_images = self.generator(test_dense_emb)
 
