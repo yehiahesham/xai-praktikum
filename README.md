@@ -36,8 +36,8 @@ Update environment from the environment.yml file:
 ## Create Env and Install dependencies via PIP :
 
 ```
-python3 -m venv XAI_1
-source XAI_1/bin/activate
+python3 -m venv XAI_GAN
+source XAI_GAN/bin/activate
 pip3 install torch torchvision torchaudio
 pip install transformers tensorboardX pandas pycocotools captum  opencv-python
 ```
