@@ -8,6 +8,10 @@ def vectors_to_images_coco(vectors):
     
     return vectors.view(vectors.size(0), 3, 256, 256)
 
+def vectors_to_images_cifar10(vectors):
+    
+    return vectors.view(vectors.size(0), 3, 32, 32)
+
 def noise_coco(size: int, cuda: False) -> Variable:
     """ generates a 1-d vector of normal sampled random values of mean 0 and standard deviation 1"""
     result = Variable(randn(size, 100, 1, 1))

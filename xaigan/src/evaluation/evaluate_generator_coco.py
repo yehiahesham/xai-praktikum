@@ -5,7 +5,7 @@ import argparse
 import random, string
 from PIL import Image
 from utils.vector_utils import noise_coco
-from models.generators import GeneratorNet_TEXT2IMG_MSCOCO,Encoder_GeneratorNet_TEXT2IMG_MSCOCO
+from models.generators import GeneratorNet_TEXT2IMG_MSCOCO,Encoder_GeneratorNet_TEXT2IMG_MSCOCO,GeneratorNetMSCOCO,GeneratorNetCIFAR10
 from models.text_embedding_models import RobertaClass
 from models.encoders import EmbeddingEncoderNetMSCOCO
 
@@ -70,34 +70,37 @@ def generate_samples_coco(number, path_model, path_output):
     :return: None
     :rtype: None
     """
-    random_texts = read_random_captionsFile()
-    random_texts = get_random_text(number,random_texts) #using MSCOC-2014 val set captions
+    # random_texts = read_random_captionsFile()
+    # random_texts = get_random_text(number,random_texts) #using MSCOC-2014 val set captions
     noise_emb_sz,text_emb_sz=100,768
-    Encoder_emb_sz =(noise_emb_sz+text_emb_sz)//2 #Hyper-paramter
+    # Encoder_emb_sz =(noise_emb_sz+text_emb_sz)//2 #Hyper-paramter
 
     #Declare & load Models' weights
-    text_emb_model = RobertaClass()
-    generator = Encoder_GeneratorNet_TEXT2IMG_MSCOCO(
-            noise_emb_sz = noise_emb_sz,
-            text_emb_sz  = text_emb_sz,
-            n_features   = Encoder_emb_sz)
-        
+    # text_emb_model = RobertaClass()
+    # generator = Encoder_GeneratorNet_TEXT2IMG_MSCOCO(
+    #         noise_emb_sz = noise_emb_sz,
+    #         text_emb_sz  = text_emb_sz,
+    #         n_features   = Encoder_emb_sz)
+    # generator = GeneratorNetMSCOCO(n_features=noise_emb_sz
+    generator = GeneratorNetCIFAR10(n_features=noise_emb_sz)  
+
     generator.load_state_dict(torch.load(path_model, map_location=lambda storage, loc: storage)['model_state_dict'])
     
     # EmbeddingEncoder_old_mode=EmbeddingEncoder.training
     # generator_old_mode=generator.training
     generator.eval()
-    text_emb_model.eval() 
-    text_emb_model.device='cpu'
+    # text_emb_model.eval() 
+    # text_emb_model.device='cpu'
     #todo: make sure we are in evualuation mode, batch Normaliation inference variables need to be used
     #todo: make sure of the shapes of random_text_emb,noise,dense_emb if they need reshaping
     #todo: randomly pick or generate a better rand sentence 
     for i in range(number):
         noise = noise_coco(1, False)
-        print(random_texts[i])
-        random_text_emb = text_emb_model.forward([random_texts[i]]).detach() 
-        dense_emb = torch.cat((random_text_emb,noise.reshape(1,-1)), 1)
-        dense_emb = dense_emb.reshape(1,-1)
+        # print(random_texts[i])
+        # random_text_emb = text_emb_model.forward([random_texts[i]]).detach() 
+        # dense_emb = torch.cat((random_text_emb,noise.reshape(1,-1)), 1)
+        # dense_emb = dense_emb.reshape(1,-1)
+        dense_emb=noise
         sample = generator(dense_emb).detach().squeeze(0).numpy()
         sample = np.transpose(sample, (1, 2, 0))
         sample = ((sample/2) + 0.5) * 255

@@ -1,6 +1,6 @@
 from enum import Enum
-from models.generators import GeneratorNetMSCOCO,GeneratorNet_TEXT2IMG_MSCOCO,Encoder_GeneratorNet_TEXT2IMG_MSCOCO
-from models.discriminators import  DiscriminatorNetMSCOCO,DiscriminatorNet_TEXT2IMG_MSCOCO
+from models.generators import GeneratorNetMSCOCO,GeneratorNet_TEXT2IMG_MSCOCO,Encoder_GeneratorNet_TEXT2IMG_MSCOCO,GeneratorNetCIFAR10
+from models.discriminators import  DiscriminatorNetMSCOCO,DiscriminatorNet_TEXT2IMG_MSCOCO,DiscriminatorNetCIFAR10
 from models.text_embedding_models import RobertaClass
 from models.encoders import EmbeddingEncoderNetMSCOCO
 
@@ -19,20 +19,20 @@ class ExperimentEnums(Enum):
         "use_one_caption": True,           #RobertaClass's param
         "use_CLS_emb":False,               #RobertaClass's param
 
-        "generator"    : Encoder_GeneratorNet_TEXT2IMG_MSCOCO,
-        "discriminator": DiscriminatorNet_TEXT2IMG_MSCOCO,
+        "generator"    : GeneratorNetCIFAR10, #GeneratorNetMSCOCO, #Encoder_GeneratorNet_TEXT2IMG_MSCOCO,
+        "discriminator": DiscriminatorNetCIFAR10, #DiscriminatorNetMSCOCO, #DiscriminatorNet_TEXT2IMG_MSCOCO,
         "text_emb_model":RobertaClass,
         "EmbeddingEncoder":None,
         
-        "dataset": "mscoco",
-        "batchSize": 512, #100,#128,
+        "dataset": 'cifar-10', #"mscoco", #'cifar-10', #'cifar-100', 
+        "batchSize": 100,#128,
         "percentage": 1,
         "g_optim": optim.Adam,
         "d_optim": optim.Adam,
         "glr": 0.0002,
         "dlr": 0.0002,
         "loss": nn.BCELoss(),
-        "epochs": 35
+        "epochs": 15
     }
    
 

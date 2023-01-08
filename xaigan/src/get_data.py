@@ -1,6 +1,9 @@
 from torch.utils.data import DataLoader, sampler
 from models.configurations import configurations
 from coco_dataset_construction import COCODetection
+import torchvision
+import torchvision.transforms as transforms
+
 data_folder = "./data"
 
 def get_loader(batchSize=100, percentage=1, dataset="mscoco"):
@@ -28,6 +31,20 @@ def get_loader(batchSize=100, percentage=1, dataset="mscoco"):
         indices = [i for i in range(int(percentage * len(data)))]
         loader = DataLoader(data, batch_size=batchSize, sampler=sampler.SubsetRandomSampler(indices), collate_fn=lambda x: x)
         return loader
+    elif dataset == "cifar-10":
+        transform = transforms.Compose( [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+        trainset = torchvision.datasets.CIFAR10(root='./datasets/data', train=True, download=True, transform=transform)
+        valset = torchvision.datasets.CIFAR10(root='./datasets/data', train=False, download=True, transform=transform)
+        train_loader = DataLoader(trainset, batch_size=batchSize, shuffle=True)
+        val_loader   = DataLoader(valset, batch_size=batchSize, shuffle=True )
+        return train_loader
+    elif dataset == "cifar-100":
+        transform = transforms.Compose( [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+        trainset = torchvision.datasets.CIFAR100(root='./datasets/data', train=True, download=True, transform=transform)
+        valset   = torchvision.datasets.CIFAR100(root='./datasets/data', train=False, download=True, transform=transform)
+        train_loader = DataLoader(trainset, batch_size=batchSize, shuffle=True)
+        val_loader   = DataLoader(valset, batch_size=batchSize, shuffle=True )
+        return train_loader
     else:
         raise Exception("dataset name not correct (or not implemented)")
     
