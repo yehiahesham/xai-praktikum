@@ -5,9 +5,9 @@ import argparse
 import random, string
 from PIL import Image
 from utils.vector_utils import noise_coco
-from models.generators import GeneratorNet_TEXT2IMG_MSCOCO,Encoder_GeneratorNet_TEXT2IMG_MSCOCO,GeneratorNetMSCOCO,GeneratorNetCIFAR10
+from models.generators import * 
 from models.text_embedding_models import RobertaClass
-from models.encoders import EmbeddingEncoderNetMSCOCO
+from models.encoders import *
 
 
 def main():
@@ -41,7 +41,7 @@ def get_random_text(number,captions):
     
         
 
-def calculate_metrics_coco(path, numberOfSamples=2048):
+def calculate_metrics_coco(path, generatorArch, numberOfSamples=2048):
     """
     This function is supposed to calculate metrics for coco.
     :param path: path of the generator model
@@ -54,11 +54,11 @@ def calculate_metrics_coco(path, numberOfSamples=2048):
     folder = f'{os.getcwd()}/tmp'
     if not os.path.exists(folder):
         os.makedirs(folder)
-    generate_samples_coco(number=numberOfSamples, path_model=path, path_output=folder)
+    generate_samples_coco(numberOfSamples,generatorArch, path_model=path, path_output=folder)
     return
 
 
-def generate_samples_coco(number, path_model, path_output):
+def generate_samples_coco(number,generatorArch, path_model, path_output):
     """
     This function generates samples for the coco GAN and saves them as jpg
     :param number: number of samples to generate
@@ -82,8 +82,7 @@ def generate_samples_coco(number, path_model, path_output):
     #         text_emb_sz  = text_emb_sz,
     #         n_features   = Encoder_emb_sz)
     # generator = GeneratorNetMSCOCO(n_features=noise_emb_sz
-    generator = GeneratorNetCIFAR10(n_features=noise_emb_sz)  
-
+    generator = generatorArch(n_features=noise_emb_sz)
     generator.load_state_dict(torch.load(path_model, map_location=lambda storage, loc: storage)['model_state_dict'])
     
     # EmbeddingEncoder_old_mode=EmbeddingEncoder.training

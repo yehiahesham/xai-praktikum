@@ -4,13 +4,11 @@ import torch.nn as nn
 from torch.autograd.variable import Variable
 
 
-def vectors_to_images_coco(vectors):
-    
-    return vectors.view(vectors.size(0), 3, 256, 256)
+def vectors_to_images(vectors,w,h):
+    return vectors.view(vectors.size(0), 3, w,h)
 
-def vectors_to_images_cifar10(vectors):
-    
-    return vectors.view(vectors.size(0), 3, 32, 32)
+def vectors_to_images_coco(vectors):    
+    return vectors.view(vectors.size(0), 3, 256,256)
 
 def noise_coco(size: int, cuda: False) -> Variable:
     """ generates a 1-d vector of normal sampled random values of mean 0 and standard deviation 1"""

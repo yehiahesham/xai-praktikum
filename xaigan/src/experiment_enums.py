@@ -24,7 +24,9 @@ class ExperimentEnums(Enum):
         "text_emb_model":RobertaClass,
         "EmbeddingEncoder":None,
         
-        "dataset": 'cifar-10', #"mscoco", #'cifar-10', #'cifar-100', 
+        "dataset": "mscoco", #'cifar-10', #'cifar-100', 
+        "target_image_w":32,
+        "target_image_h":32,
         "batchSize": 100,#128,
         "percentage": 1,
         "g_optim": optim.Adam,

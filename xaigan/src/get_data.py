@@ -24,8 +24,9 @@ def get_loader(batchSize=100, percentage=1, dataset="mscoco"):
         # test_info     = f'{MS_COCO_CFG["path"]}/{MS_COCO_CFG["test_image_info_path"]}/instances_val2017.json' ??
         # test_cap      = f'{MS_COCO_CFG["path"]}/{MS_COCO_CFG["test_image_info_path"]}/captions_val2017.json'  ??
 
-
-        data = COCODetection(val_image, val_info,val_cap)
+        # target_image_w,target_image_h=256,256
+        target_image_w,target_image_h=32,32
+        data = COCODetection(val_image, val_info,val_cap,target_image_w=target_image_w,target_image_h=target_image_h)
         # data = COCODetection(train_image, train_info,train_cap)
 
         indices = [i for i in range(int(percentage * len(data)))]

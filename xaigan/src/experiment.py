@@ -1,5 +1,5 @@
 from get_data import get_loader
-from utils.vector_utils import  values_target, weights_init, vectors_to_images_coco,vectors_to_images_cifar10, noise_coco
+from utils.vector_utils import  values_target, weights_init, vectors_to_images_coco,vectors_to_images, noise_coco
 from evaluation.evaluate_generator_coco import calculate_metrics_coco, read_random_captionsFile,get_random_text
 from logger import Logger
 from utils.explanation_utils import get_explanation, explanation_hook_coco
@@ -35,6 +35,9 @@ class Experiment:
         self.use_one_caption = self.type["use_one_caption"]
         self.use_CLS_emb = self.type["use_CLS_emb"]
         self.text_emb_sz = self.type["text_emb_sz"] #TODO: to be able to chanhe that in roberta
+        self.target_image_w = self.type["target_image_w"] #TODO: to be able to chanhe that in roberta
+        self.target_image_h = self.type["target_image_h"] #TODO: to be able to chanhe that in roberta
+        
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
@@ -74,13 +77,15 @@ class Experiment:
         :return: None
         :rtype: None
         """
-
+        
         start_time = time.time()
 
         explanationSwitch = (self.epochs + 1) / 2 if self.epochs % 2 == 1 else self.epochs / 2
 
         logger = Logger(self.name, self.type["dataset"])
 
+        calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',self.type["generator"], numberOfSamples=10000)
+        return
         
         #TODO: x2 check
         test_noise = noise_coco(self.samples, self.cuda)
@@ -130,20 +135,38 @@ class Experiment:
                 if self.type["dataset"] == "mscoco":
                     self.generator.out.register_backward_hook(explanation_hook_coco)
 
-                local_explainable = False#True
+                local_explainable = False#True            
             
+            for n_batch, (real_batch) in enumerate(loader):
+                
+                if  self.type["dataset"]=='mscoco' :
+                    N = len(real_batch)
+                    batch_images = torch.stack([real_batch[i][0] for i  in range(0,N)] , dim=0)
+                    batch_images = batch_images.reshape((N, 3, self.target_image_w, self.target_image_h))
 
-            
-            
+                    # lables       = torch.stack([real_batch[i][1] for i  in range(0,N)] , dim=0)
 
-            for n_batch, (real_batch) in enumerate(loader):  #caner's
-                batch_images, labels = real_batch
-                N = batch_images.size(0)
-                #     N = len(real_batch) # caner's
-                #TODO:check that ???
-                # batch_df = pd.DataFrame(real_batch)
-                # batch_images = np.vstack(batch_df.iloc[:, 0])#.astype(np.float16)
-                # batch_images = torch.from_numpy(batch_images)
+                    # batch_images= real_batch[0][0] #1st - (image)
+                    # lables= real_batch[0][1]       #1st - (5 captions/image)
+                    
+                    
+                    # for i in range(1,N): #looping on images, and aggregate the tensor array
+                    #     batch_images = torch.stack( [batch_images,real_batch[i][0]], dim=0)
+                    
+                    # for i in range(1,N): #looping on capions, and aggregate the tensor array
+                    #     lables = torch.cat( (batch_images,real_batch[i][1]), 0)
+                
+                else : #cifar10, cifar100
+                    batch_images=real_batch
+                    N = batch_images.size(0)
+                
+                
+                # if   self.type["dataset"]=='cifar-10' or self.type["dataset"]=='cifar-100' :
+                #     for n_batch, (real_batch) in enumerate(loader):
+                #         batch_images, labels = real_batch
+                #         N = batch_images.size(0)
+                
+
 
                 # 0. Pass (Text+Noise) embeddings >  EmbeddingEncoder_NN > Generator_NN
                 noise_emb = noise_coco(N, self.cuda)
@@ -160,6 +183,9 @@ class Experiment:
                 # 1. Train Discriminator
                 # Generate fake data and detach (so gradients are not calculated for generator)
                 fake_data = self.generator(dense_emb).detach()
+                
+                    
+                
                 #print("Generator output: ", fake_data.size())
                 
 
@@ -168,7 +194,7 @@ class Experiment:
                     fake_data = fake_data.cuda()
 
                 # Train D
-                # batch_images = batch_images.reshape((N, 3, 256, 256)) #caner's
+                
                 #print("Batch images", batch_images.size())
                 #print("Fake data:", fake_data.size())
                 d_error, d_pred_real, d_pred_fake = self._train_discriminator(real_data=batch_images, fake_data=fake_data)
@@ -183,7 +209,6 @@ class Experiment:
                 dense_emb=noise_emb
                
                 fake_data = self.generator(dense_emb) #generate a new fake image to train the Generator & Encoder
-
 
                 if self.cuda:
                     fake_data = fake_data.cuda()
@@ -217,9 +242,9 @@ class Experiment:
                     )
                 
 
-        logger.save_models(generator=self.generator)
-        logger.save_model (model=self.EmbeddingEncoder_model,name="EmbeddingEncoder")
-        logger.save_model (model=self.discriminator,name="discriminator")
+        ## logger.save_models(generator=self.generator)
+        ## logger.save_model (model=self.EmbeddingEncoder_model,name="EmbeddingEncoder")
+        ## logger.save_model (model=self.discriminator,name="discriminator")
 
         logger.save_errors(g_loss=G_losses, d_loss=D_losses)
         timeTaken = time.time() - start_time
@@ -228,15 +253,12 @@ class Experiment:
         
         
         
-        # if   self.type["dataset"]=='mscoco'   : test_images = vectors_to_images_coco(test_images).cpu().data
-        # elif self.type["dataset"]=='cifar-10' : test_images = vectors_to_images_cifar10(test_images).cpu().data 
-        
-        
-        calculate_metrics_coco(path=f'{logger.data_subdir}/generator.pt', numberOfSamples=10000)
+        test_images = vectors_to_images(test_images,self.target_image_w,self.target_image_h).cpu().data    
+        calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',self.type["generator"], numberOfSamples=10000)
        
 
         # logger.log_images(test_images, self.epochs + 1, 0, num_batches)
-        logger.save_scores(timeTaken, 0)
+        # logger.save_scores(timeTaken, 0)
         return
 
     def _train_generator(self, fake_data: torch.Tensor, local_explainable, trained_data=None) -> torch.Tensor:

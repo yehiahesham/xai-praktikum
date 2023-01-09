@@ -13,12 +13,13 @@ import numpy as np
 from PIL import Image
 
 class COCODetection(data.Dataset):
-    def __init__(self, image_path, info_file,val_cap, has_gt=True):
+    def __init__(self, image_path, info_file,val_cap, has_gt=True,target_image_w=256,target_image_h=256):
         self.root       = image_path
         self.coco       = COCO(info_file)
         self.coco_caps  = COCO(val_cap)
         self.ids        = list(self.coco.imgToAnns.keys())  # 标签数
-
+        self.target_image_w=target_image_w
+        self.target_image_h=target_image_h
         if len(self.ids) == 0 or not has_gt:  # 如果没有标签或者不需要GT，则直接使用image
             self.ids = list(self.coco.imgs.keys())
         
@@ -32,7 +33,7 @@ class COCODetection(data.Dataset):
     def __getitem__(self, index):
         im ,gt, captions,file_name, h, w, num_crowds = self.pull_item(index)
 
-        return im.float(),(captions,file_name)
+        return im.float(),captions
 
     def pull_item(self, index):
         
@@ -60,7 +61,7 @@ class COCODetection(data.Dataset):
         path = osp.join(self.root, file_name)
 
         img = cv2.imread(path)
-        img = cv2.resize(img, (256,256))
+        img = cv2.resize(img, (self.target_image_w,self.target_image_h))
         height, width, _ = img.shape
 
         #if len(target) > 0: 
