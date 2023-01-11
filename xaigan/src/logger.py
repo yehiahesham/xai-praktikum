@@ -66,7 +66,6 @@ class Logger:
         path_output = f'{os.getcwd()}/Generated_ImgPerEpoch'
         if not os.path.exists(path_output):
             os.makedirs(path_output)
-        
         # Added for device incompatibility - Caner
         fake_data = fake_data.detach().cpu().numpy()
 

@@ -35,10 +35,7 @@ def read_random_captionsFile(captions_json_path='./xaigan/src/evaluation/caption
 def get_random_text(number,captions):
     N=len(captions)
     return [captions[random.randint(0, N)]['caption'] for i in range(0,number)]
-            
-    
 
-    
         
 
 def calculate_metrics_coco(path, generatorArch, numberOfSamples=2048):

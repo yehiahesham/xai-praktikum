@@ -27,9 +27,9 @@ class Experiment:
         #Extract Paramters from Experiment Enum
         self.name = experimentType.name
         self.type = experimentType.value
-        
+
         self.explainable = self.type["explainable"]
-        self.explanationType = self.type["explanationType"]        
+        self.explanationType = self.type["explanationType"]
         self.noise_emb_sz = self.type["noise_emb_sz"]
         self.text_max_len = self.type["text_max_len"]
         self.use_one_caption = self.type["use_one_caption"]
@@ -37,28 +37,32 @@ class Experiment:
         self.text_emb_sz = self.type["text_emb_sz"] #TODO: to be able to chanhe that in roberta
         self.target_image_w = self.type["target_image_w"] #TODO: to be able to chanhe that in roberta
         self.target_image_h = self.type["target_image_h"] #TODO: to be able to chanhe that in roberta
-        
+        self.use_captions = self.type["use_captions"]
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
+        # Flag for embedding network
+        self.text_emb_model = None
 
-        #Calcualted Parameters
-        self.Encoder_emb_sz =(self.noise_emb_sz+self.text_emb_sz)//2 #Hyper-paramter (encoder output/ generator input)
+        # Declare & intialize Models
+        if self.use_captions:
+            # Calculated Parameters
+            self.Encoder_emb_sz =(self.noise_emb_sz+self.text_emb_sz)//2 #Hyper-paramter (encoder output/ generator input)
+            self.text_emb_model = self.type["text_emb_model"]().to(self.device)
+            self.generator = self.type["generator"](
+                noise_emb_sz=self.noise_emb_sz,
+                text_emb_sz=self.text_emb_sz,
+                n_features=self.Encoder_emb_sz).to(self.device)
+            #freezing text encoder weights
+            for param in self.text_emb_model.parameters():
+                param.requires_grad = False
 
-        #Declare & intialize Models
-               
+                #Set HyperParamters for Training
+        else:
+            self.generator = self.type["generator"](n_features=self.noise_emb_sz).to(self.device)
+
         self.discriminator = self.type["discriminator"]().to(self.device)
-        self.text_emb_model = self.type["text_emb_model"]().to(self.device)
-        self.generator = self.type["generator"](n_features=self.noise_emb_sz)
-        # self.generator = self.type["generator"](
-        #     noise_emb_sz = self.noise_emb_sz,
-        #     text_emb_sz  = self.text_emb_sz,
-        #     n_features   = self.Encoder_emb_sz).to(self.device)
-        
-        #freezing text encoder weights
-        for param in self.text_emb_model.parameters():
-          param.requires_grad = False    
-          
-        #Set HyperParamters for Training 
+
+
         self.g_optim = self.type["g_optim"](self.generator.parameters(), lr=self.type["glr"], betas=(0.5, 0.99))
         self.d_optim = self.type["d_optim"](self.discriminator.parameters(), lr=self.type["dlr"], betas=(0.5, 0.99))
         self.loss = self.type["loss"]
@@ -89,17 +93,21 @@ class Experiment:
         
         #TODO: x2 check
         test_noise = noise_coco(self.samples, self.cuda)
-        # random_captions = read_random_captionsFile()
-        # random_texts = get_random_text(self.samples,random_captions) #using MSCOC-2014 val set captions
 
-        # test_texts_emb = self.text_emb_model.forward([random_texts[0]])
-        # for i in range(1,self.samples):
-            # random_text_emb = self.text_emb_model.forward([random_texts[i]])
-            # test_texts_emb = torch.cat((test_texts_emb,random_text_emb), 0)
+        if self.use_captions:
+            random_captions = read_random_captionsFile()
+            random_texts = get_random_text(self.samples,random_captions) #using MSCOC-2014 val set captions
+
+            test_texts_emb = self.text_emb_model.forward([random_texts[0]])
+            for i in range(1,self.samples):
+                random_text_emb = self.text_emb_model.forward([random_texts[i]])
+                test_texts_emb = torch.cat((test_texts_emb,random_text_emb), 0)
         
-        #concatinate the 2 embeddings
-        # test_dense_emb = torch.cat( (test_texts_emb,test_noise.reshape(self.samples,-1)), 1)      
-        test_dense_emb=test_noise
+            #concatinate the 2 embeddings
+            test_dense_emb = torch.cat( (test_texts_emb,test_noise.reshape(self.samples,-1)), 1)
+        else:
+            test_dense_emb=test_noise
+
         self.generator.apply(weights_init)
         self.discriminator.apply(weights_init)
 
@@ -166,15 +174,17 @@ class Experiment:
                 
                 # 0. Pass (Text+Noise) embeddings >  EmbeddingEncoder_NN > Generator_NN
                 noise_emb = noise_coco(N, self.cuda)
-                
-                # texts_emb = self.text_emb_model.forward(batch_df.iloc[:, 1][0])  #captions/image are on same col
-                # for i in range(1,N):
-                #     text_emb  = self.text_emb_model.forward(batch_df.iloc[i, 1][0])
-                #     texts_emb = torch.cat((texts_emb,text_emb), 0)
 
-                #concatinate the 2 embeddings
-                # dense_emb = torch.cat((texts_emb,noise_emb.reshape(N,-1)), 1)#.to(torch.float16)
-                dense_emb = noise_emb
+                if self.use_captions:
+                    texts_emb = self.text_emb_model.forward(batch_df.iloc[:, 1][0])  #captions/image are on same col
+                    for i in range(1,N):
+                        text_emb  = self.text_emb_model.forward(batch_df.iloc[i, 1][0])
+                        texts_emb = torch.cat((texts_emb,text_emb), 0)
+
+                    # concatinate the 2 embeddings
+                    dense_emb = torch.cat((texts_emb,noise_emb.reshape(N,-1)), 1)#.to(torch.float16)
+                else:
+                    dense_emb = noise_emb
 
                 # 1. Train Discriminator
                 # Generate fake data and detach (so gradients are not calculated for generator)
@@ -201,8 +211,10 @@ class Experiment:
                 noise_emb = noise_coco(N, self.cuda) #new noise emb but same text emb
                 
                 #concatinate the 2 embeddings
-                # dense_emb = torch.cat( (texts_emb,noise_emb.reshape(N, -1)), 1)
-                dense_emb=noise_emb
+                if self.use_captions:
+                    dense_emb = torch.cat((texts_emb,noise_emb.reshape(N, -1)), 1)
+                else:
+                    dense_emb=noise_emb
                
                 fake_data = self.generator(dense_emb) #generate a new fake image to train the Generator & Encoder
 
@@ -236,7 +248,7 @@ class Experiment:
                         epoch, self.epochs, n_batch, num_batches,
                         d_error, g_error, d_pred_real, d_pred_fake
                     )
-                logger.Generator_sample_per_epoch(fake_data[0],epoch)
+                logger.Generator_sample_per_epoch(fake_data[0], epoch)
 
         ## logger.save_models(generator=self.generator)
         ## logger.save_model (model=self.EmbeddingEncoder_model,name="EmbeddingEncoder")
