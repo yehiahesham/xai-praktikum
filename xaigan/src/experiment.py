@@ -155,13 +155,12 @@ class Experiment:
                     
                     # for i in range(1,N): #looping on capions, and aggregate the tensor array
                     #     lables = torch.cat( (batch_images,real_batch[i][1]), 0)
-                elif self.type["dataset"] == 'Flowers102':
-                    # batch_images, labels,captions = real_batch
-                    batch_images, labels = real_batch #images,class
-                    
 
+                elif self.type["dataset"] == 'flowers-102':
+                    batch_images,labels,captions = real_batch #images,class
+                    N = batch_images.size(0)
 
-                else : #
+                else : 
                     batch_images, labels = real_batch
                     N = batch_images.size(0)
                 

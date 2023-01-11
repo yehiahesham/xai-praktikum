@@ -24,7 +24,7 @@ class ExperimentEnums(Enum):
         "text_emb_model":RobertaClass,
         "EmbeddingEncoder":None,
         
-        "dataset": 'mscoco',  #['flowers-102', 'mscoco', 'cifar-10', 'cifar-100',]
+        "dataset": 'flowers-102',  #['flowers-102', 'mscoco', 'cifar-10', 'cifar-100',]
         "target_image_w":32,
         "target_image_h":32,
         "batchSize": 16,#128,

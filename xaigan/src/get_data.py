@@ -1,6 +1,7 @@
 from torch.utils.data import DataLoader, sampler
 from models.configurations import configurations
 from coco_dataset_construction import COCODetection
+from flowers102_dataset_construction import Flowers102_detection
 import torchvision
 import torchvision.transforms as transforms
 
@@ -48,17 +49,20 @@ def get_loader(batchSize=100, percentage=1, dataset="mscoco",target_image_w=32,t
         val_loader   = DataLoader(valset, batch_size=batchSize, shuffle=True )
         return train_loader
     elif dataset == "flowers-102":
-        transform = transforms.Compose( [\
-            transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),\
-            transforms.Resize((target_image_w,target_image_h)) ])
-        trainset = torchvision.datasets.Flowers102(root='./datasets/data', split="train", download=True, transform=transform)
-        train_loader = DataLoader(trainset, batch_size=batchSize, shuffle=True)
-        # valset   = torchvision.datasets.Flowers102(root='./datasets/data', train=False, download=True, transform=transform)
-        # val_loader   = DataLoader(valset, batch_size=batchSize, shuffle=True )
-        captions = load_captions(name='Flowers102',path='') #captions
 
+        CFG  = configurations["datasets"]["flowers-102"]
+        train_image   = CFG["path"]+"/"+CFG["train_images"]
+        labels_info   = CFG["path"]+"/"+"imagelabels.mat"
+        captions_path = CFG["path"]+"/"+"flowers102_captions.json"
+    
+        #for dowonload purposes only 
+        trainset = torchvision.datasets.Flowers102(root='./datasets/data', split="train", download=True) 
+        # trainset = torchvision.datasets.Flowers102(root='./datasets/data', split="val", download=True) 
+        # trainset = torchvision.datasets.Flowers102(root='./datasets/data', split="test", download=True) 
+        
+        trainset = Flowers102_detection(train_image, labels_info,captions_path,target_image_w=32,target_image_h=32)
+        train_loader = DataLoader(trainset, batch_size=batchSize, shuffle=True)
         return train_loader
-   
     
     else:
         raise Exception("dataset name not correct (or not implemented)")
