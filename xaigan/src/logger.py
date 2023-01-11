@@ -61,6 +61,18 @@ class Logger:
         plt.legend()
         plt.savefig(self.data_subdir + "/plotLoss.png")
 
+    def Generator_sample_per_epoch(fake_data,epoch):
+        from PIL import Image
+        path_output = f'{os.getcwd()}/Generated_ImgPerEpoch'
+        if not os.path.exists(path_output):
+            os.makedirs(path_output)
+        fake_sample = np.transpose(fake_data, (1, 2, 0))
+        fake_sample = ((fake_sample/2) + 0.5) * 255
+        fake_sample = fake_sample.astype(np.uint8)
+        fake_sample_image = Image.fromarray(fake_sample)
+        fake_sample_image.save(f'{path_output}/{epoch}.jpg')
+
+
     def log_images(self, images, epoch, n_batch, num_batches, i_format='NCHW', normalize=True):
         """ input images are expected in format (NCHW) """
         if type(images) == np.ndarray:
@@ -122,7 +134,7 @@ class Logger:
             #'optimizer_state_dict': optimizer.state_dict(),
             'loss': loss,
             }, f'{self.data_subdir}/{name}.pt')
-
+    
     def close(self):
         self.writer.close()
 

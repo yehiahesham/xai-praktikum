@@ -6,26 +6,27 @@ import torchvision.transforms as transforms
 
 data_folder = "./data"
 
-def get_loader(batchSize=100, percentage=1, dataset="mscoco"):
+def get_loader(batchSize=100, percentage=1, dataset="mscoco",target_image_w=32,target_image_h=32):
     
     if dataset == "mscoco":        
-        MS_COCO_CFG  = configurations["datasets"]["MS_COCO"]
+        CFG  = configurations["datasets"]["MS_COCO"]
         
-        val_image    = f'{MS_COCO_CFG["path"]}/{MS_COCO_CFG["val_images"]}'
-        val_info     = f'{MS_COCO_CFG["path"]}/{MS_COCO_CFG["trainval_annotations"]}/instances_val2017.json'
-        val_cap      = f'{MS_COCO_CFG["path"]}/{MS_COCO_CFG["trainval_annotations"]}/captions_val2017.json'
+        Classes      = f'{CFG["path"]}/{CFG["classes"]}'
+        val_image    = f'{CFG["path"]}/{CFG["val_images"]}'
+        val_info     = f'{CFG["path"]}/{CFG["trainval_annotations"]}/instances_val2017.json'
+        val_cap      = f'{CFG["path"]}/{CFG["trainval_annotations"]}/captions_val2017.json'
 
-        train_image    = f'{MS_COCO_CFG["path"]}/{MS_COCO_CFG["train_images"]}'
-        train_info     = f'{MS_COCO_CFG["path"]}/{MS_COCO_CFG["trainval_annotations"]}/instances_train2017.json'
-        train_cap      = f'{MS_COCO_CFG["path"]}/{MS_COCO_CFG["trainval_annotations"]}/captions_train2017.json'
+        train_image    = f'{CFG["path"]}/{CFG["train_images"]}'
+        train_info     = f'{CFG["path"]}/{CFG["trainval_annotations"]}/instances_train2017.json'
+        train_cap      = f'{CFG["path"]}/{CFG["trainval_annotations"]}/captions_train2017.json'
 
 
-        # test_image    = f'{MS_COCO_CFG["path"]}/{MS_COCO_CFG["test_images"]}'
-        # test_info     = f'{MS_COCO_CFG["path"]}/{MS_COCO_CFG["test_image_info_path"]}/instances_val2017.json' ??
-        # test_cap      = f'{MS_COCO_CFG["path"]}/{MS_COCO_CFG["test_image_info_path"]}/captions_val2017.json'  ??
+        # test_image    = f'{CFG["path"]}/{CFG["test_images"]}'
+        # test_info     = f'{CFG["path"]}/{CFG["test_image_info_path"]}/instances_val2017.json' ??
+        # test_cap      = f'{CFG["path"]}/{CFG["test_image_info_path"]}/captions_val2017.json'  ??
 
         # target_image_w,target_image_h=256,256
-        target_image_w,target_image_h=32,32
+        # target_image_w,target_image_h=32,32
         data = COCODetection(val_image, val_info,val_cap,target_image_w=target_image_w,target_image_h=target_image_h)
         # data = COCODetection(train_image, train_info,train_cap)
 
@@ -46,6 +47,19 @@ def get_loader(batchSize=100, percentage=1, dataset="mscoco"):
         train_loader = DataLoader(trainset, batch_size=batchSize, shuffle=True)
         val_loader   = DataLoader(valset, batch_size=batchSize, shuffle=True )
         return train_loader
+    elif dataset == "flowers-102":
+        transform = transforms.Compose( [\
+            transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),\
+            transforms.Resize((target_image_w,target_image_h)) ])
+        trainset = torchvision.datasets.Flowers102(root='./datasets/data', split="train", download=True, transform=transform)
+        train_loader = DataLoader(trainset, batch_size=batchSize, shuffle=True)
+        # valset   = torchvision.datasets.Flowers102(root='./datasets/data', train=False, download=True, transform=transform)
+        # val_loader   = DataLoader(valset, batch_size=batchSize, shuffle=True )
+        captions = load_captions(name='Flowers102',path='') #captions
+
+        return train_loader
+   
+    
     else:
         raise Exception("dataset name not correct (or not implemented)")
     

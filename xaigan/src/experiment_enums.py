@@ -19,15 +19,15 @@ class ExperimentEnums(Enum):
         "use_one_caption": True,           #RobertaClass's param
         "use_CLS_emb":False,               #RobertaClass's param
 
-        "generator"    : GeneratorNetCIFAR10, #GeneratorNetMSCOCO, #Encoder_GeneratorNet_TEXT2IMG_MSCOCO,
-        "discriminator": DiscriminatorNetCIFAR10, #DiscriminatorNetMSCOCO, #DiscriminatorNet_TEXT2IMG_MSCOCO,
+        "generator"    : GeneratorNetCIFAR10, # ['GeneratorNetCIFAR10', 'GeneratorNetMSCOCO', 'Encoder_GeneratorNet_TEXT2IMG_MSCOCO']
+        "discriminator": DiscriminatorNetCIFAR10, #['DiscriminatorNetCIFAR10','DiscriminatorNetMSCOCO,'DiscriminatorNet_TEXT2IMG_MSCOCO']
         "text_emb_model":RobertaClass,
         "EmbeddingEncoder":None,
         
-        "dataset": "mscoco", #'cifar-10', #'cifar-100', 
+        "dataset": 'mscoco',  #['flowers-102', 'mscoco', 'cifar-10', 'cifar-100',]
         "target_image_w":32,
         "target_image_h":32,
-        "batchSize": 100,#128,
+        "batchSize": 16,#128,
         "percentage": 1,
         "g_optim": optim.Adam,
         "d_optim": optim.Adam,

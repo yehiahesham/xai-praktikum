@@ -103,7 +103,7 @@ class Experiment:
         self.generator.apply(weights_init)
         self.discriminator.apply(weights_init)
 
-        loader = get_loader(self.type["batchSize"], self.type["percentage"], self.type["dataset"])
+        loader = get_loader(self.type["batchSize"], self.type["percentage"], self.type["dataset"], self.target_image_w, self.target_image_h)
         num_batches = len(loader)
 
         if self.cuda:
@@ -155,19 +155,16 @@ class Experiment:
                     
                     # for i in range(1,N): #looping on capions, and aggregate the tensor array
                     #     lables = torch.cat( (batch_images,real_batch[i][1]), 0)
-                
-                else : #cifar10, cifar100
-                    batch_images=real_batch
+                elif self.type["dataset"] == 'Flowers102':
+                    # batch_images, labels,captions = real_batch
+                    batch_images, labels = real_batch #images,class
+                    
+
+
+                else : #
+                    batch_images, labels = real_batch
                     N = batch_images.size(0)
                 
-                
-                # if   self.type["dataset"]=='cifar-10' or self.type["dataset"]=='cifar-100' :
-                #     for n_batch, (real_batch) in enumerate(loader):
-                #         batch_images, labels = real_batch
-                #         N = batch_images.size(0)
-                
-
-
                 # 0. Pass (Text+Noise) embeddings >  EmbeddingEncoder_NN > Generator_NN
                 noise_emb = noise_coco(N, self.cuda)
                 
@@ -240,7 +237,7 @@ class Experiment:
                         epoch, self.epochs, n_batch, num_batches,
                         d_error, g_error, d_pred_real, d_pred_fake
                     )
-                
+                logger.Generator_sample_per_epoch(fake_data[0],epoch)
 
         ## logger.save_models(generator=self.generator)
         ## logger.save_model (model=self.EmbeddingEncoder_model,name="EmbeddingEncoder")
@@ -254,11 +251,11 @@ class Experiment:
         
         
         test_images = vectors_to_images(test_images,self.target_image_w,self.target_image_h).cpu().data    
-        calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',self.type["generator"], numberOfSamples=10000)
+        calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',self.type["generator"], numberOfSamples=15)
        
 
-        # logger.log_images(test_images, self.epochs + 1, 0, num_batches)
-        # logger.save_scores(timeTaken, 0)
+        logger.log_images(test_images, self.epochs + 1, 0, num_batches)
+        logger.save_scores(timeTaken, 0)
         return
 
     def _train_generator(self, fake_data: torch.Tensor, local_explainable, trained_data=None) -> torch.Tensor:
