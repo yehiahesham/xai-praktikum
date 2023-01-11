@@ -248,7 +248,7 @@ class Experiment:
                         epoch, self.epochs, n_batch, num_batches,
                         d_error, g_error, d_pred_real, d_pred_fake
                     )
-                logger.Generator_sample_per_epoch(fake_data[0], epoch)
+            logger.Generator_sample_per_epoch(fake_data[0], epoch)
 
         ## logger.save_models(generator=self.generator)
         ## logger.save_model (model=self.EmbeddingEncoder_model,name="EmbeddingEncoder")
