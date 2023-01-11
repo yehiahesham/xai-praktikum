@@ -28,7 +28,7 @@ class ExperimentEnums(Enum):
         "target_image_w":32,
         "target_image_h":32,
         "batchSize": 100,#128,
-        "percentage": 1,
+        "percentage": 100,
         "g_optim": optim.Adam,
         "d_optim": optim.Adam,
         "glr": 0.0002,

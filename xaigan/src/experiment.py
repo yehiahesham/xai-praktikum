@@ -84,8 +84,8 @@ class Experiment:
 
         logger = Logger(self.name, self.type["dataset"])
 
-        calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',self.type["generator"], numberOfSamples=10000)
-        return
+        # calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',self.type["generator"], numberOfSamples=10000)
+        # return
         
         #TODO: x2 check
         test_noise = noise_coco(self.samples, self.cuda)
