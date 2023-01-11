@@ -18,9 +18,10 @@ class ExperimentEnums(Enum):
         "text_max_len"    :350,            #RobertaClass's param
         "use_one_caption": True,           #RobertaClass's param
         "use_CLS_emb":False,               #RobertaClass's param
+        "use_captions": True,
 
-        "generator"    : GeneratorNetCIFAR10, # ['GeneratorNetCIFAR10', 'GeneratorNetMSCOCO', 'Encoder_GeneratorNet_TEXT2IMG_MSCOCO']
-        "discriminator": DiscriminatorNetCIFAR10, #['DiscriminatorNetCIFAR10','DiscriminatorNetMSCOCO,'DiscriminatorNet_TEXT2IMG_MSCOCO']
+        "generator"    : Encoder_GeneratorNet_TEXT2IMG_MSCOCO, # ['GeneratorNetCIFAR10', 'GeneratorNetMSCOCO', 'Encoder_GeneratorNet_TEXT2IMG_MSCOCO']
+        "discriminator": DiscriminatorNet_TEXT2IMG_MSCOCO, #['DiscriminatorNetCIFAR10','DiscriminatorNetMSCOCO,'DiscriminatorNet_TEXT2IMG_MSCOCO']
         "text_emb_model":RobertaClass,
         "EmbeddingEncoder":None,
         

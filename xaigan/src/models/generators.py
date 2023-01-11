@@ -210,8 +210,7 @@ class Encoder_GeneratorNet_TEXT2IMG_MSCOCO(nn.Module, ABC):
         self.generator_feat = n_features
         
         
-        # self.encoder = EmbeddingEncoderNetMSCOCO(
-        #     noise_emb_sz,text_emb_sz,self.generator_feat)
+        self.encoder = EmbeddingEncoderNetMSCOCO(noise_emb_sz,text_emb_sz,self.generator_feat)
 
         self.generator = GeneratorNet_TEXT2IMG_MSCOCO(
             n_features=self.generator_feat)
