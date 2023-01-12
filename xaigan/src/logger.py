@@ -61,9 +61,9 @@ class Logger:
         plt.legend()
         plt.savefig(self.data_subdir + "/plotLoss.png")
 
-    def Generator_sample_per_epoch(self,fake_data,epoch):
+    def Generator_per_epoch(self,fake_data,epoch):
         from PIL import Image
-        path_output = f'{os.getcwd()}/Generated_ImgPerEpoch'
+        path_output = f'{os.getcwd()}/Generated_PerEpoch'
         if not os.path.exists(path_output):
             os.makedirs(path_output)
         # Added for device incompatibility - Caner

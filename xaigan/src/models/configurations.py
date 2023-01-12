@@ -7,7 +7,7 @@ configurations= {
         "MS_COCO":{
             "path": "C:/Users/caner/Desktop/MS_COCO",
             # "path":"/home/yehia/Documents/MS_COCO",
-            # "path":"/home2/yehia.ahmed/MS-COCO",
+            # "path":"/home2/yehia.ahmed/XAI_datasets/MS-COCO",
             "train_images__path":"root",
             "test_image_info_path": "image_info_test2017/annotations",
             "trainval_annotations": "annotations_trainval2017/annotations",
@@ -32,12 +32,14 @@ configurations= {
         "flowers-102":{
             # "path": "C:/Users/caner/Desktop/MS_COCO",
             # "path":"/home/yehia/Documents/MS_COCO",
-            "path":"/home2/yehia.ahmed/git/xai-praktikum/datasets/data/flowers-102",
+            "path": "/home2/yehia.ahmed/XAI_datasets/data/flowers-102",
             "train_images": "jpg",
             "val_images"  : "val",
             "test_images" : "test",
-        }
-    
+        },
+        "others":{
+            "Datasets_DownloadPATH":"/home2/yehia.ahmed/XAI_datasets",
+            }
     
     }
 }

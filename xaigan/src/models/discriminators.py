@@ -40,9 +40,6 @@ class DiscriminatorNetCIFAR10(nn.Module, ABC):
         x = self.out(x)
         return x
 
-
-
-
 class DiscriminatorNetMSCOCO(nn.Module, ABC):
     def __init__(self):
         super(DiscriminatorNetMSCOCO, self).__init__()
@@ -79,12 +76,9 @@ class DiscriminatorNetMSCOCO(nn.Module, ABC):
         x = self.out(x)
         return x
 
-
-
-
-class DiscriminatorNet_TEXT2IMG_MSCOCO(nn.Module):
+class DiscriminatorNetMSCOCO_2(nn.Module):
     def __init__(self):
-        super(DiscriminatorNet_TEXT2IMG_MSCOCO, self).__init__()
+        super(DiscriminatorNetMSCOCO_2, self).__init__()
         self.n_features = (3, 256, 256)
         nc, ndf = 3, 256/8
         

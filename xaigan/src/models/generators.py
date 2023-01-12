@@ -2,7 +2,7 @@ from abc import ABC
 from torch import nn, Tensor
 import numpy as np
 
-#============================================ENCODERS=======================================================================================
+#============================================ start of ENCODERS =======================================================================================
 
 class EmbeddingEncoderNetMSCOCO(nn.Module, ABC):
     def __init__(self,noise_emb_sz,text_emb_sz=868,generator_input_emb_sz=100):
@@ -46,8 +46,7 @@ class EmbeddingEncoderNetMSCOCO(nn.Module, ABC):
         x = self.out(x)
         return x
 
-#============================================ENCODERS=======================================================================================
-
+#============================================ start of Generators =====================================================================================
 
 class GeneratorNetCIFAR10(nn.Module, ABC):
     def __init__(self,n_features=100):
@@ -83,7 +82,7 @@ class GeneratorNetCIFAR10(nn.Module, ABC):
 
     def forward(self, x):
         #print("\tdense_emb/Gener Input shape is",x.shape)
-        # x = x[:,:, np.newaxis, np.newaxis]
+        x = x[:,:, np.newaxis, np.newaxis]
         #print("\t1 maniplulation to that input, it becomes is",x.shape)
         x = self.input_layer(x)
         #print("output of Gen input_layer: ", x.size())
@@ -96,10 +95,10 @@ class GeneratorNetCIFAR10(nn.Module, ABC):
         return x
 
 
-# BUG:check if it is ok have these edits, most likely not !
-class GeneratorNetMSCOCO(nn.Module, ABC):
+
+class GeneratorNet_MSCOCO(nn.Module, ABC):
     def __init__(self,n_features=100):
-        super(GeneratorNetMSCOCO, self).__init__()
+        super(GeneratorNet_MSCOCO, self).__init__()
         self.n_features = n_features
         #self.n_out = (3, 32, 32)
         self.n_out = (3, 256, 256)
@@ -143,9 +142,9 @@ class GeneratorNetMSCOCO(nn.Module, ABC):
         #print("Gen out layer: ", x.size())
         return x
 
-class GeneratorNet_TEXT2IMG_MSCOCO(nn.Module, ABC):
+class GeneratorNet_2_MSCOCO(nn.Module, ABC):
     def __init__(self,n_features=100):
-        super(GeneratorNet_TEXT2IMG_MSCOCO, self).__init__()
+        super(GeneratorNet_2_MSCOCO, self).__init__()
         self.n_features = n_features
         #self.n_out = (3, 32, 32)
         size=256
@@ -201,19 +200,61 @@ class GeneratorNet_TEXT2IMG_MSCOCO(nn.Module, ABC):
         #print("Gen out layer: ", x.size())
         return x
 
-class Encoder_GeneratorNet_TEXT2IMG_MSCOCO(nn.Module, ABC):
+
+#============================================ start of Encoders + Generators =====================================================================================
+
+#====== start of Encoders + Generators (MSCOCO sizes) ======
+class Generator_Encoder_Net_MSCOCO(nn.Module, ABC):
     def __init__(self,noise_emb_sz=100,text_emb_sz=768,n_features=868):
-        super(Encoder_GeneratorNet_TEXT2IMG_MSCOCO, self).__init__()
+        super(Generator_Encoder_Net_MSCOCO, self).__init__()
+        
+        self.noise_emb_sz   = noise_emb_sz
+        self.text_emb_sz    = text_emb_sz
+        self.generator_feat = n_features
+                
+        self.encoder =   EmbeddingEncoderNetMSCOCO(noise_emb_sz,text_emb_sz,n_features)
+        self.generator = GeneratorNet_MSCOCO(n_features=n_features)
+        
+        
+    def forward(self, x):
+        x = self.encoder(x)
+        x = x.reshape(-1,self.generator_feat)  #TODO:investigate 
+        x = self.generator(x)
+        return x
+
+class GeneratorNet_2_EncoderNet_MSCOCO(nn.Module, ABC):
+    def __init__(self,noise_emb_sz=100,text_emb_sz=768,n_features=868):
+        super(GeneratorNet_2_EncoderNet_MSCOCO, self).__init__()
         
         self.noise_emb_sz   = noise_emb_sz
         self.text_emb_sz    = text_emb_sz
         self.generator_feat = n_features
         
         
-        self.encoder = EmbeddingEncoderNetMSCOCO(noise_emb_sz,text_emb_sz,self.generator_feat)
+        self.encoder   = EmbeddingEncoderNetMSCOCO(noise_emb_sz,text_emb_sz,n_features)
+        self.generator = GeneratorNet_2_MSCOCO(n_features=n_features)
+        
+        
+    def forward(self, x):
+        x = self.encoder(x)
+        x = x.reshape(-1,self.generator_feat)  #TODO:investigate 
+        x = self.generator(x)
+        return x
 
-        self.generator = GeneratorNet_TEXT2IMG_MSCOCO(
-            n_features=self.generator_feat)
+#====== start of Encoders + Generators (CIFAR-10 sizes) ======
+
+class Generator_Encoder_Net_CIFAR10(nn.Module, ABC):
+    def __init__(self,noise_emb_sz=100,text_emb_sz=768,n_features=868):
+        super(Generator_Encoder_Net_CIFAR10, self).__init__()
+        
+        self.noise_emb_sz   = noise_emb_sz
+        self.text_emb_sz    = text_emb_sz
+        self.generator_feat = n_features
+        
+        
+        self.encoder = EmbeddingEncoderNetMSCOCO(noise_emb_sz,text_emb_sz,n_features)
+        self.generator = GeneratorNetCIFAR10(n_features=n_features)
+        
         
     def forward(self, x):
         x = self.encoder(x)

@@ -88,23 +88,19 @@ class Experiment:
 
         logger = Logger(self.name, self.type["dataset"])
 
-        # calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',self.type["generator"], numberOfSamples=10000)
+        # calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',self.type["generator"], self.use_captions,
+        #                         self.type["dataset"],self.type["text_emb_model"],numberOfSamples=15)
         # return
         
-        #TODO: x2 check
         test_noise = noise_coco(self.samples, self.cuda)
 
         if self.use_captions:
-            random_captions = read_random_captionsFile()
-            random_texts = get_random_text(self.samples,random_captions) #using MSCOC-2014 val set captions
-
-            test_texts_emb = self.text_emb_model.forward([random_texts[0]])
-            for i in range(1,self.samples):
-                random_text_emb = self.text_emb_model.forward([random_texts[i]])
-                test_texts_emb = torch.cat((test_texts_emb,random_text_emb), 0)
-        
+            random_captions = read_random_captionsFile(self.type["dataset"])
+            random_texts = get_random_text(self.samples,random_captions, self.type["dataset"]) 
+            test_texts_embs = torch.stack([self.text_emb_model.forward([random_texts[i]]).squeeze() \
+                                            for i in range(self.samples)], dim=0)
             #concatinate the 2 embeddings
-            test_dense_emb = torch.cat( (test_texts_emb,test_noise.reshape(self.samples,-1)), 1)
+            test_dense_emb = torch.cat( (test_texts_embs,test_noise.reshape(self.samples,-1)), 1)
         else:
             test_dense_emb=test_noise
 
@@ -165,8 +161,37 @@ class Experiment:
                     #     lables = torch.cat( (batch_images,real_batch[i][1]), 0)
 
                 elif self.type["dataset"] == 'flowers-102':
-                    batch_images,labels,captions = real_batch #images,class
+                    batch_images,labels,captions = real_batch #images,classes, Matrix of (10,batch_size) =>  10 cap/per image
                     N = batch_images.size(0)
+                    MAX_CAPTIONS_PER_IMAGE=10
+
+                    #text proccess if needed 
+                    texts_embs = None
+                    if   self.use_captions and self.use_one_caption:
+                        batched_captions = []
+                        # pick best caption as captions with longest length
+                        for batch_elt_i in range(N):   #loop on batch elements
+                            caption_with_max_len=max([captions[caption_j][batch_elt_i] for caption_j in range (0,MAX_CAPTIONS_PER_IMAGE)] ,key=len)
+                            batched_captions.append(caption_with_max_len)                            
+                    
+                        #Stack text embs [batch_size,text_emb_sz]
+                        texts_embs = torch.stack([self.text_emb_model.forward([batched_captions[i]]).squeeze() \
+                                            for i in range(N)], dim=0)
+                        
+                    
+                    elif self.use_captions and not self.use_one_caption:
+                        #TODO: Need to be tested
+                        for batch_elt_i in N:   #loop on batch elements
+                            singleImage_Multi_captions = [captions[caption_j][batch_elt_i] for caption_j in range (0,MAX_CAPTIONS_PER_IMAGE)]
+                            singleImage_Multi_Captions_Emb = torch.stack([self.text_emb_model.forward(singleImage_Multi_captions).squeeze() \
+                                            for i in range(N)], dim=0)
+                            
+                            #Aggregation function: averging (Hyperparamerte\r) 
+                            singleImage_Multi_Captions_Emb = singleImage_Multi_Captions_Emb.mean()
+
+                            #build the batched result 
+                            texts_embs = torch.stack([texts_embs,singleImage_Multi_Captions_Emb], dim=0)
+                    
 
                 else : 
                     batch_images, labels = real_batch
@@ -176,24 +201,14 @@ class Experiment:
                 noise_emb = noise_coco(N, self.cuda)
 
                 if self.use_captions:
-                    texts_emb = self.text_emb_model.forward(batch_df.iloc[:, 1][0])  #captions/image are on same col
-                    for i in range(1,N):
-                        text_emb  = self.text_emb_model.forward(batch_df.iloc[i, 1][0])
-                        texts_emb = torch.cat((texts_emb,text_emb), 0)
-
                     # concatinate the 2 embeddings
-                    dense_emb = torch.cat((texts_emb,noise_emb.reshape(N,-1)), 1)#.to(torch.float16)
+                    dense_emb = torch.cat((texts_embs,noise_emb.reshape(N,-1)), 1)#.to(torch.float16)
                 else:
                     dense_emb = noise_emb
 
                 # 1. Train Discriminator
                 # Generate fake data and detach (so gradients are not calculated for generator)
-                fake_data = self.generator(dense_emb).detach()
-                
-                    
-                
-                #print("Generator output: ", fake_data.size())
-                
+                fake_data = self.generator(dense_emb).detach()                
 
                 if self.cuda:
                     batch_images = batch_images.cuda()
@@ -201,18 +216,17 @@ class Experiment:
 
                 # Train D
                 
-                #print("Batch images", batch_images.size())
-                #print("Fake data:", fake_data.size())
                 d_error, d_pred_real, d_pred_fake = self._train_discriminator(real_data=batch_images, fake_data=fake_data)
 
-		        # 2. Train Generator
+		        
+                # 2. Train Generator
                 # Generate fake data
                 
-                noise_emb = noise_coco(N, self.cuda) #new noise emb but same text emb
+                noise_emb = noise_coco(N, self.cuda) #new noise emb
                 
-                #concatinate the 2 embeddings
                 if self.use_captions:
-                    dense_emb = torch.cat((texts_emb,noise_emb.reshape(N, -1)), 1)
+                    #concatinate the SAME 2 embeddings
+                    dense_emb = torch.cat((texts_embs,noise_emb.reshape(N, -1)), 1)
                 else:
                     dense_emb=noise_emb
                
@@ -221,7 +235,7 @@ class Experiment:
                 if self.cuda:
                     fake_data = fake_data.cuda()
 
-                # Train G & Encoder if exist
+                # Train G (with Encoder Network if exist)
                 g_error = self._train_generator(fake_data=fake_data, local_explainable=local_explainable,
                                                 trained_data=trained_data)
                 
@@ -248,11 +262,7 @@ class Experiment:
                         epoch, self.epochs, n_batch, num_batches,
                         d_error, g_error, d_pred_real, d_pred_fake
                     )
-            logger.Generator_sample_per_epoch(fake_data[0], epoch)
-
-        ## logger.save_models(generator=self.generator)
-        ## logger.save_model (model=self.EmbeddingEncoder_model,name="EmbeddingEncoder")
-        ## logger.save_model (model=self.discriminator,name="discriminator")
+            logger.Generator_per_epoch(fake_data[0], epoch)
 
         logger.save_errors(g_loss=G_losses, d_loss=D_losses)
         timeTaken = time.time() - start_time
@@ -262,9 +272,9 @@ class Experiment:
         
         
         test_images = vectors_to_images(test_images,self.target_image_w,self.target_image_h).cpu().data    
-        calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',self.type["generator"], numberOfSamples=15)
-       
-
+        calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',self.type["generator"], self.use_captions,
+                                self.type["dataset"],self.type["text_emb_model"],numberOfSamples=15)
+        
         logger.log_images(test_images, self.epochs + 1, 0, num_batches)
         logger.save_scores(timeTaken, 0)
         return

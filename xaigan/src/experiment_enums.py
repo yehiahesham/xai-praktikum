@@ -1,8 +1,10 @@
 from enum import Enum
-from models.generators import GeneratorNetMSCOCO,GeneratorNet_TEXT2IMG_MSCOCO,Encoder_GeneratorNet_TEXT2IMG_MSCOCO,GeneratorNetCIFAR10
-from models.discriminators import  DiscriminatorNetMSCOCO,DiscriminatorNet_TEXT2IMG_MSCOCO,DiscriminatorNetCIFAR10
+
+from models.generators import EmbeddingEncoderNetMSCOCO
+from models.generators import GeneratorNet_MSCOCO,GeneratorNet_2_MSCOCO,Generator_Encoder_Net_MSCOCO,GeneratorNet_2_EncoderNet_MSCOCO
+from models.generators import GeneratorNetCIFAR10,Generator_Encoder_Net_CIFAR10 
+from models.discriminators import DiscriminatorNetCIFAR10,DiscriminatorNetMSCOCO,DiscriminatorNetMSCOCO_2
 from models.text_embedding_models import RobertaClass
-from models.encoders import EmbeddingEncoderNetMSCOCO
 
 from torch import nn, optim
 from experiment import Experiment
@@ -11,17 +13,17 @@ from experiment import Experiment
 class ExperimentEnums(Enum):
 
     Mscoco = {
-        "explainable"     : False,
-        "explanationType" : None,
-        "noise_emb_sz"    : 100,           #GeneratorNetMSCOCO's noise param
-        "text_emb_sz"     : 768,   #TODO:  #RobertaClass's param
+        "explainable"     :False,
+        "explanationType" :None,
+        "noise_emb_sz"    :100,            #GeneratorNetMSCOCO's noise param
+        "text_emb_sz"     :768,    #TODO:  #RobertaClass's param
         "text_max_len"    :350,            #RobertaClass's param
-        "use_one_caption": True,           #RobertaClass's param
-        "use_CLS_emb":False,               #RobertaClass's param
-        "use_captions": False,
-
-        "generator"    : GeneratorNetCIFAR10, # ['GeneratorNetCIFAR10', 'GeneratorNetMSCOCO', 'Encoder_GeneratorNet_TEXT2IMG_MSCOCO']
-        "discriminator": DiscriminatorNetCIFAR10, #['DiscriminatorNetCIFAR10','DiscriminatorNetMSCOCO,'DiscriminatorNet_TEXT2IMG_MSCOCO']
+        "use_CLS_emb"     :False,          #RobertaClass's param
+        "use_one_caption" :True ,          #RobertaClass's param + param used in experiment 
+        "use_captions"    :True ,          
+                            
+        "generator"    : Generator_Encoder_Net_CIFAR10,
+        "discriminator": DiscriminatorNetCIFAR10, 
         "text_emb_model":RobertaClass,
         "EmbeddingEncoder":None,
         
@@ -35,7 +37,7 @@ class ExperimentEnums(Enum):
         "glr": 0.0002,
         "dlr": 0.0002,
         "loss": nn.BCELoss(),
-        "epochs": 15
+        "epochs": 50
     }
    
 

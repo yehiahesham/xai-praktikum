@@ -8,7 +8,8 @@ import torchvision.transforms as transforms
 data_folder = "./data"
 
 def get_loader(batchSize=100, percentage=1, dataset="mscoco",target_image_w=32,target_image_h=32):
-    
+    download_path = configurations["datasets"]["others"]["Datasets_DownloadPATH"]+"/data"
+
     if dataset == "mscoco":        
         CFG  = configurations["datasets"]["MS_COCO"]
         
@@ -26,39 +27,35 @@ def get_loader(batchSize=100, percentage=1, dataset="mscoco",target_image_w=32,t
         # test_info     = f'{CFG["path"]}/{CFG["test_image_info_path"]}/instances_val2017.json' ??
         # test_cap      = f'{CFG["path"]}/{CFG["test_image_info_path"]}/captions_val2017.json'  ??
 
-        # target_image_w,target_image_h=256,256
-        # target_image_w,target_image_h=32,32
         data = COCODetection(val_image, val_info,val_cap,target_image_w=target_image_w,target_image_h=target_image_h)
-        # data = COCODetection(train_image, train_info,train_cap)
 
         indices = [i for i in range(int(percentage * len(data)))]
         loader = DataLoader(data, batch_size=batchSize, sampler=sampler.SubsetRandomSampler(indices), collate_fn=lambda x: x)
         return loader
     elif dataset == "cifar-10":
         transform = transforms.Compose( [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-        trainset = torchvision.datasets.CIFAR10(root='./datasets/data', train=True, download=True, transform=transform)
-        valset = torchvision.datasets.CIFAR10(root='./datasets/data', train=False, download=True, transform=transform)
+        trainset = torchvision.datasets.CIFAR10(root=download_path, train=True, download=True, transform=transform)
+        valset = torchvision.datasets.CIFAR10(root=download_path, train=False, download=True, transform=transform)
         train_loader = DataLoader(trainset, batch_size=batchSize, shuffle=True)
         val_loader   = DataLoader(valset, batch_size=batchSize, shuffle=True )
         return train_loader
     elif dataset == "cifar-100":
         transform = transforms.Compose( [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-        trainset = torchvision.datasets.CIFAR100(root='./datasets/data', train=True, download=True, transform=transform)
-        valset   = torchvision.datasets.CIFAR100(root='./datasets/data', train=False, download=True, transform=transform)
+        trainset = torchvision.datasets.CIFAR100(root=download_path, train=True, download=True, transform=transform)
+        valset   = torchvision.datasets.CIFAR100(root=download_path, train=False, download=True, transform=transform)
         train_loader = DataLoader(trainset, batch_size=batchSize, shuffle=True)
         val_loader   = DataLoader(valset, batch_size=batchSize, shuffle=True )
         return train_loader
     elif dataset == "flowers-102":
-
         CFG  = configurations["datasets"]["flowers-102"]
         train_image   = CFG["path"]+"/"+CFG["train_images"]
         labels_info   = CFG["path"]+"/"+"imagelabels.mat"
         captions_path = CFG["path"]+"/"+"flowers102_captions.json"
     
         #for dowonload purposes only 
-        trainset = torchvision.datasets.Flowers102(root='./datasets/data', split="train", download=True) 
-        # trainset = torchvision.datasets.Flowers102(root='./datasets/data', split="val", download=True) 
-        # trainset = torchvision.datasets.Flowers102(root='./datasets/data', split="test", download=True) 
+        trainset = torchvision.datasets.Flowers102(root=download_path, split="train", download=True) 
+        # trainset = torchvision.datasets.Flowers102(root=download_path, split="val", download=True) 
+        # trainset = torchvision.datasets.Flowers102(root=download_path, split="test", download=True) 
         
         trainset = Flowers102_detection(train_image, labels_info,captions_path,target_image_w=32,target_image_h=32)
         train_loader = DataLoader(trainset, batch_size=batchSize, shuffle=True)
