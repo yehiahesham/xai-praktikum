@@ -48,13 +48,16 @@ class Experiment:
             # Calculated Parameters
             self.Encoder_emb_sz =(self.noise_emb_sz+self.text_emb_sz)//2 #Hyper-paramter (encoder output/ generator input)
             self.text_emb_model = self.type["text_emb_model"]().to(self.device)
+            self.text_emb_model.eval() 
+            #freezing text encoder weights
+            for param in self.text_emb_model.parameters():
+                param.requires_grad = False
+                
             self.generator = self.type["generator"](
                 noise_emb_sz=self.noise_emb_sz,
                 text_emb_sz=self.text_emb_sz,
                 n_features=self.Encoder_emb_sz).to(self.device)
-            #freezing text encoder weights
-            for param in self.text_emb_model.parameters():
-                param.requires_grad = False
+            
 
                 #Set HyperParamters for Training
         else:

@@ -82,7 +82,7 @@ class GeneratorNetCIFAR10(nn.Module, ABC):
 
     def forward(self, x):
         #print("\tdense_emb/Gener Input shape is",x.shape)
-        x = x[:,:, np.newaxis, np.newaxis]
+        # x = x[:,:, np.newaxis, np.newaxis]
         #print("\t1 maniplulation to that input, it becomes is",x.shape)
         x = self.input_layer(x)
         #print("output of Gen input_layer: ", x.size())
@@ -190,7 +190,7 @@ class GeneratorNet_2_MSCOCO(nn.Module, ABC):
 
     def forward(self, x):
         #print("\tdense_emb/Gener Input shape is",x.shape)
-        x = x[:,:, np.newaxis, np.newaxis]
+        # x = x[:,:, np.newaxis, np.newaxis]
         #print("\t1 maniplulation to that input, it becomes is",x.shape)
         x = self.input_layer(x)
         x = self.hidden1(x)
@@ -218,7 +218,8 @@ class Generator_Encoder_Net_MSCOCO(nn.Module, ABC):
         
     def forward(self, x):
         x = self.encoder(x)
-        x = x.reshape(-1,self.generator_feat)  #TODO:investigate 
+        # x = x.reshape(-1,self.generator_feat)  #TODO:investigate 
+        x = x[:,:, np.newaxis, np.newaxis] #add new access to pass to generator
         x = self.generator(x)
         return x
 
@@ -237,7 +238,8 @@ class GeneratorNet_2_EncoderNet_MSCOCO(nn.Module, ABC):
         
     def forward(self, x):
         x = self.encoder(x)
-        x = x.reshape(-1,self.generator_feat)  #TODO:investigate 
+        x = x[:,:, np.newaxis, np.newaxis] #add new access to pass to generator
+        # x = x.reshape(-1,self.generator_feat)  #TODO:investigate 
         x = self.generator(x)
         return x
 
@@ -258,7 +260,8 @@ class Generator_Encoder_Net_CIFAR10(nn.Module, ABC):
         
     def forward(self, x):
         x = self.encoder(x)
-        x = x.reshape(-1,self.generator_feat)  #TODO:investigate 
+        # x = x.reshape(-1,self.generator_feat)  #TODO:investigate 
+        x = x[:,:, np.newaxis, np.newaxis] #add new access to pass to generator
         x = self.generator(x)
         return x
 

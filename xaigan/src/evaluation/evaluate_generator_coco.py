@@ -96,6 +96,7 @@ def generate_samples_coco(number,generatorArch,TextEmb_Arch,use_captions,dataset
         text_emb_model.device='cpu'
     else:
         generator = generatorArch(n_features=noise_emb_sz)
+        # generator.to('cpu')
 
     # load saved weights for generator  & intialize Models
     generator.load_state_dict(torch.load(path_model, map_location=lambda storage, loc: storage)['model_state_dict'])
@@ -109,7 +110,7 @@ def generate_samples_coco(number,generatorArch,TextEmb_Arch,use_captions,dataset
         if use_captions:
             print(random_texts[i])
             random_text_emb = text_emb_model.forward([random_texts[i]]).detach()
-            dense_emb = torch.cat((random_text_emb,noise.reshape(1,-1)), 1)            
+            dense_emb = torch.cat((random_text_emb,noise.reshape(1,-1)), 1)
         else:
             dense_emb=noise
         

@@ -12,7 +12,7 @@ from experiment import Experiment
 
 class ExperimentEnums(Enum):
 
-    Mscoco = {
+    flowers_withCaptions = {
         "explainable"     :False,
         "explanationType" :None,
         "noise_emb_sz"    :100,            #GeneratorNetMSCOCO's noise param
@@ -37,7 +37,35 @@ class ExperimentEnums(Enum):
         "glr": 0.0002,
         "dlr": 0.0002,
         "loss": nn.BCELoss(),
-        "epochs": 50
+        "epochs": 2
+    }
+    
+    flowers_only = {
+        "explainable"     :False,
+        "explanationType" :None,
+        "noise_emb_sz"    :100,            #GeneratorNetMSCOCO's noise param
+        "text_emb_sz"     :768,    #TODO:  #RobertaClass's param
+        "text_max_len"    :350,            #RobertaClass's param
+        "use_CLS_emb"     :False,          #RobertaClass's param
+        "use_one_caption" :True ,          #RobertaClass's param + param used in experiment 
+        "use_captions"    :False ,          
+                            
+        "generator"    : GeneratorNetCIFAR10,
+        "discriminator": DiscriminatorNetCIFAR10, 
+        "text_emb_model":RobertaClass,
+        "EmbeddingEncoder":None,
+        
+        "dataset": 'flowers-102',  #['flowers-102', 'mscoco', 'cifar-10', 'cifar-100',]
+        "target_image_w":32,
+        "target_image_h":32,
+        "batchSize": 16,#128,
+        "percentage": 1,
+        "g_optim": optim.Adam,
+        "d_optim": optim.Adam,
+        "glr": 0.0002,
+        "dlr": 0.0002,
+        "loss": nn.BCELoss(),
+        "epochs": 2
     }
    
 
