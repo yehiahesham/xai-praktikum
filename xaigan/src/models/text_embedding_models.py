@@ -1,11 +1,9 @@
-import torch
-import os
-import random
-import logging
 import numpy as np
-from torch import cuda
+import torch, os, json,  random
+import logging
 from transformers import RobertaModel, RobertaTokenizer
-
+from torchtext import vocab
+from torchtext.data import get_tokenizer
 
 class RobertaClass(torch.nn.Module):
     def __init__(self, max_len=350, use_CLS_emb=True,use_one_caption=True ):
@@ -126,14 +124,70 @@ class RobertaClass(torch.nn.Module):
 
         return self.get_ImageCaptions_embedding(last_hidden_state ,pooler_output)
 
+class Glove_Embbeding(torch.nn.Module):
+    def __init__(self,max_words=350):
+        super(Glove_Embbeding, self).__init__()
+        self.text_emb_sz = 50 # as Glove embedding size is 50
+        self.max_words=max_words #max words per sentence
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") 
+        self.vocab = vocab.GloVe(name='6B', dim=self.text_emb_sz)
+        self.tokenizer = get_tokenizer("basic_english") ## We'll use tokenizer available from PyTorch
+
+        
+
+    def forward(self,caption): 
+        '''
+        implementation for a single caption per image
+        func retrurns 1 single caption(sentence) embeddding by aggrearting the wods embs 
+
+        function agrregates word embeddings to get a setence embedding. 
+        we might need attention model here /RNN!
+        '''
+        colors = ['blue','red','green']
+        caption=caption[0] #todo check
+        sentence_tokens = self.tokenizer(caption)
+        for color in colors:
+            if color in sentence_tokens : 
+                return self.vocab.get_vecs_by_tokens(color, lower_case_backup=True).to(self.device)
+
+        return self.vocab.get_vecs_by_tokens(sentence_tokens[random.randint(0, len(sentence_tokens)-1)], lower_case_backup=True).to(self.device)
+
+
+        self.vocab.get_vecs_by_tokens(X, lower_case_backup=True).to(self.device)
+        X = sentence_tokens+[""] * (self.max_words-len(sentence_tokens))  if len(sentence_tokens)<self.max_words else tokens[:self.max_words]
+        
+        # if len(sentence_tokens)<self.max_words:
+        #     X = sentence_tokens+[""] * (self.max_words-len(tokens)) 
+        # else:
+        #     X = sentence_tokens[:self.max_words]
+        
+
+        # X_tensor = torch.zeros(len(batch),self.max_words, self.text_emb_sz)
+        # X_tensor = torch.zeros(self.max_words, self.text_emb_sz)
+        X_tensor = self.vocab.get_vecs_by_tokens(X, lower_case_backup=True).to(self.device)
+        
+        return X_tensor.reshape(1, -1) #a single sentence embedding
     
 if __name__=='__main__':
-    text_emb_model = RobertaClass(max_len=350, use_CLS_emb=True,use_one_caption=False)
+    # texts = ["Saw met applauded favourite deficient engrossed concealed and her"]
     texts = [
         "Saw met applauded favourite deficient engrossed concealed and her",
         "Egyptian man fights aliens"
          ]
-    # texts = ["Saw met applauded favourite deficient engrossed concealed and her"]
-    texts_emb = text_emb_model.forward(texts)
-    print(texts_emb.shape)
+    
+    # # RobertaClass
+    # text_emb_model = RobertaClass(max_len=350, use_CLS_emb=True,use_one_caption=False)
+    # text_emb_model.eval()
+    # text_emb_model.to(text_emb_model.device)
+    # texts_embs = text_emb_model.forward(texts)
+    # print(texts_embs.shape)
+
+
+    # Glove_Embbeding
+    text_emb_model = Glove_Embbeding()
+    # texts_embs = text_emb_model.forward(texts) #or 
+    texts_embs = torch.stack([text_emb_model.forward([text]).squeeze() for text in texts], dim=0)
+    print(texts_embs)
+    print(texts_embs.shape)
+    
 

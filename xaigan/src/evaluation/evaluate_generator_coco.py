@@ -25,6 +25,15 @@ def main():
                         help="number of samples to generate")
 
     args = parser.parse_args()
+    sampling_args = {
+            'generator' :Generator_Encoder_Net_CIFAR10,
+            "text_emb_model"  :Glove_Embbeding,
+            'use_captions'  :True,
+            'dataset'       :'flowers-102',
+            'noise_emb_sz'  :100,
+            'text_emb_sz'   :50,
+            'Encoder_emb_sz': (100+50)//2,
+        }
     calculate_metrics_coco(path=args.file, numberOfSamples=args.number_of_samples)
 
 def read_random_captionsFile(dataset):    
@@ -49,7 +58,7 @@ def get_random_text(number,captions,dataset):
     elif dataset=='flowers-102': #using same dataset of flowers-102 captions
         return [captions[random.randint(0, N)] for i in range(0,number)]
         
-def calculate_metrics_coco(path, generatorArch, use_captions,dataset,TextEmb_Arch=None,numberOfSamples=2048):
+def calculate_metrics_coco(path,args,numberOfSamples=2048):
     """
     This function is supposed to calculate metrics for coco.
     :param path: path of the generator model
@@ -62,11 +71,11 @@ def calculate_metrics_coco(path, generatorArch, use_captions,dataset,TextEmb_Arc
     folder = f'{os.getcwd()}/tmp'
     if not os.path.exists(folder):
         os.makedirs(folder)
-    generate_samples_coco(numberOfSamples,generatorArch,TextEmb_Arch,use_captions,dataset, path_model=path, path_output=folder)
+    generate_samples_coco(numberOfSamples,args,path_model=path, path_output=folder)
     return
 
 
-def generate_samples_coco(number,generatorArch,TextEmb_Arch,use_captions,dataset,path_model, path_output):
+def generate_samples_coco(number,args,path_model, path_output):
     """
     This function generates samples for the coco GAN and saves them as jpg
     :param number: number of samples to generate
@@ -78,16 +87,24 @@ def generate_samples_coco(number,generatorArch,TextEmb_Arch,use_captions,dataset
     :return: None
     :rtype: None
     """
+    
+
+    generatorArch = args['generator']
+    text_emb_model = args["text_emb_model"]
+    use_captions = args['use_captions']
+    dataset = args['dataset']
+    noise_emb_sz = args['noise_emb_sz']
+    text_emb_sz = args['text_emb_sz']
+    Encoder_emb_sz = args['Encoder_emb_sz']
 
     # Declare & intializ Variables
     random_texts = read_random_captionsFile(dataset)
     random_texts = get_random_text(number,random_texts,dataset) #using MSCOC-2014 val set captions
-    noise_emb_sz,text_emb_sz=100,768
-    Encoder_emb_sz =(noise_emb_sz+text_emb_sz)//2 #Hyper-paramter (encoder output/ generator input)
+    
     
     # Declare & intialize Models
     if use_captions:
-        text_emb_model = TextEmb_Arch()
+        text_emb_model = text_emb_model()
         generator = generatorArch(
             noise_emb_sz=noise_emb_sz,
             text_emb_sz=text_emb_sz,

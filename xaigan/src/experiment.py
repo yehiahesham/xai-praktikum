@@ -38,6 +38,7 @@ class Experiment:
         self.target_image_w = self.type["target_image_w"] #TODO: to be able to chanhe that in roberta
         self.target_image_h = self.type["target_image_h"] #TODO: to be able to chanhe that in roberta
         self.use_captions = self.type["use_captions"]
+        self.Encoder_emb_sz = self.type["Encoder_emb_sz"] #Hyper-paramter (encoder output/ generator input)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         # Flag for embedding network
@@ -45,10 +46,8 @@ class Experiment:
 
         # Declare & intialize Models
         if self.use_captions:
-            # Calculated Parameters
-            self.Encoder_emb_sz =(self.noise_emb_sz+self.text_emb_sz)//2 #Hyper-paramter (encoder output/ generator input)
             self.text_emb_model = self.type["text_emb_model"]().to(self.device)
-            self.text_emb_model.eval() 
+            self.text_emb_model.eval()
             #freezing text encoder weights
             for param in self.text_emb_model.parameters():
                 param.requires_grad = False
@@ -91,8 +90,16 @@ class Experiment:
 
         logger = Logger(self.name, self.type["dataset"])
 
-        # calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',self.type["generator"], self.use_captions,
-        #                         self.type["dataset"],self.type["text_emb_model"],numberOfSamples=15)
+        # sampling_args = {
+        #     'generator' :self.type["generator"],
+        #     "text_emb_model"  :self.type["text_emb_model"],
+        #     'use_captions'  :self.type['use_captions'],
+        #     'dataset'       :self.type["dataset"],
+        #     'noise_emb_sz'  :self.type["noise_emb_sz"],
+        #     'text_emb_sz'   :self.type["text_emb_sz"],
+        #     'Encoder_emb_sz':self.Encoder_emb_sz,
+        # }
+        # calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',sampling_args,numberOfSamples=15)
         # return
         
         test_noise = noise_coco(self.samples, self.cuda)
@@ -275,8 +282,17 @@ class Experiment:
         
         
         test_images = vectors_to_images(test_images,self.target_image_w,self.target_image_h).cpu().data    
-        calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',self.type["generator"], self.use_captions,
-                                self.type["dataset"],self.type["text_emb_model"],numberOfSamples=15)
+        
+        sampling_args = {
+            'generator' :self.type["generator"],
+            "text_emb_model"  :self.type["text_emb_model"],
+            'use_captions'  :self.type['use_captions'],
+            'dataset'       :self.type["dataset"],
+            'noise_emb_sz'  :self.type["noise_emb_sz"],
+            'text_emb_sz'   :self.type["text_emb_sz"],
+            'Encoder_emb_sz':self.Encoder_emb_sz,
+        }
+        calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',sampling_args,numberOfSamples=15)
         
         logger.log_images(test_images, self.epochs + 1, 0, num_batches)
         logger.save_scores(timeTaken, 0)
