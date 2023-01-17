@@ -90,18 +90,27 @@ class Experiment:
 
         logger = Logger(self.name, self.type["dataset"])
 
+
         sampling_args = {
             'generator' :self.type["generator"],
+            'pretrained_generatorPath': f'{logger.data_subdir}/generator.pt',
+            "pretrained_discriminatorPath": f'{logger.data_subdir}/discriminator.pt',
             "text_emb_model"  :self.type["text_emb_model"],
             'use_captions'  :self.type['use_captions'],
             'dataset'       :self.type["dataset"],
             'noise_emb_sz'  :self.type["noise_emb_sz"],
             'text_emb_sz'   :self.type["text_emb_sz"],
             'Encoder_emb_sz':self.Encoder_emb_sz,
+            'discriminator': self.type["discriminator"],
+            "explainable" :self.type["explainable"],
+            "explanationType" : self.type["explanationType"],
+            "explanationTypes" : ["Integrated_Gradients","saliency", "shapley_value_sampling"]
+
         }
-        # calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',sampling_args,numberOfSamples=15)
-        # return
-        
+
+        calculate_metrics_coco(sampling_args,numberOfSamples=15)
+        return
+
         test_noise = noise_coco(self.samples, self.cuda)
 
         if self.use_captions:

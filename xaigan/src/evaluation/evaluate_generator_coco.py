@@ -5,10 +5,13 @@ import argparse
 import random, string,json
 from PIL import Image
 from utils.vector_utils import noise_coco
-from models.generators import * 
+
+from models.generators import *
 from models.text_embedding_models import *
 from models.encoders import *
 from models.configurations import configurations
+from captum.attr import visualization as viz
+from captum.attr import DeepLiftShap, Saliency, IntegratedGradients, ShapleyValueSampling, Lime
 
 
 
@@ -19,7 +22,8 @@ def main():
     :return:
     """
     parser = argparse.ArgumentParser(description="calculate metrics given a path of saved generator")
-    parser.add_argument("-f", "--file", default="./../results/MSCOCONormal/generator.pt", help="path of the file")
+    parser.add_argument("-f", "--generator", default="./../results/MSCOCONormal/generator.pt", help="path of the file")
+    parser.add_argument("-f2", "--discriminator", default="./../results/MSCOCONormal/discriminator.pt", help="path of the file")
     parser.add_argument("-n", "--number_of_samples",
                         type=int, default=2048,
                         help="number of samples to generate")
@@ -33,8 +37,10 @@ def main():
             'noise_emb_sz'  :100,
             'text_emb_sz'   :50,
             'Encoder_emb_sz': (100+50)//2,
+            'pretrained_generatorPath': args.generator,
+            "pretrained_discriminatorPath": args.discriminator,
         }
-    calculate_metrics_coco(path=args.file, numberOfSamples=args.number_of_samples)
+    calculate_metrics_coco(sampling_args, numberOfSamples=args.number_of_samples)
 
 def read_random_captionsFile(dataset):    
     captions=None     
@@ -58,7 +64,7 @@ def get_random_text(number,captions,dataset):
     elif dataset=='flowers-102': #using same dataset of flowers-102 captions
         return [captions[random.randint(0, N)] for i in range(0,number)]
         
-def calculate_metrics_coco(path,args,numberOfSamples=2048):
+def calculate_metrics_coco(args,numberOfSamples=2048):
     """
     This function is supposed to calculate metrics for coco.
     :param path: path of the generator model
@@ -71,11 +77,11 @@ def calculate_metrics_coco(path,args,numberOfSamples=2048):
     folder = f'{os.getcwd()}/tmp'
     if not os.path.exists(folder):
         os.makedirs(folder)
-    generate_samples_coco(numberOfSamples,args,path_model=path, path_output=folder)
+    generate_samples_coco(numberOfSamples,args, path_output=folder)
     return
 
 
-def generate_samples_coco(number,args,path_model, path_output):
+def generate_samples_coco(number,args,path_output):
     """
     This function generates samples for the coco GAN and saves them as jpg
     :param number: number of samples to generate
@@ -90,20 +96,27 @@ def generate_samples_coco(number,args,path_model, path_output):
     
 
     generatorArch = args['generator']
+    gen_path = args['pretrained_generatorPath']
     text_emb_model = args["text_emb_model"]
     use_captions = args['use_captions']
     dataset = args['dataset']
     noise_emb_sz = args['noise_emb_sz']
     text_emb_sz = args['text_emb_sz']
     Encoder_emb_sz = args['Encoder_emb_sz']
+    explainable = args["explainable"]
+    explanation_type = args["explanationType"]
+    explanation_types = args["explanationTypes"]
+    discriminatorArch = args["discriminator"]
+    disc_path = args['pretrained_discriminatorPath']
 
-    # Declare & intializ Variables
-    random_texts = read_random_captionsFile(dataset)
-    random_texts = get_random_text(number,random_texts,dataset) #using MSCOC-2014 val set captions
-    
+    # Declare & intialize Variables
+
+    random_texts = None
     
     # Declare & intialize Models
     if use_captions:
+        random_texts = read_random_captionsFile(dataset)
+        random_texts = get_random_text(number, random_texts, dataset)  # using MSCOC-2014 val set captions
         text_emb_model = text_emb_model()
         generator = generatorArch(
             noise_emb_sz=noise_emb_sz,
@@ -115,8 +128,17 @@ def generate_samples_coco(number,args,path_model, path_output):
         generator = generatorArch(n_features=noise_emb_sz)
         # generator.to('cpu')
 
+    discriminator = None
+    explainer = None
+
+    if explainable:
+        discriminator = discriminatorArch()
+        discriminator.load_state_dict(torch.load(disc_path, map_location=lambda storage, loc: storage)['model_state_dict'])
+        discriminator.eval()
+
+
     # load saved weights for generator  & intialize Models
-    generator.load_state_dict(torch.load(path_model, map_location=lambda storage, loc: storage)['model_state_dict'])
+    generator.load_state_dict(torch.load(gen_path, map_location=lambda storage, loc: storage)['model_state_dict'])
     generator.eval()
     
     
@@ -131,12 +153,52 @@ def generate_samples_coco(number,args,path_model, path_output):
         else:
             dense_emb=noise
         
-        sample = generator(dense_emb).detach().squeeze(0).numpy()
-        sample = np.transpose(sample, (1, 2, 0))
-        sample = ((sample/2) + 0.5) * 255
-        sample = sample.astype(np.uint8)
-        image = Image.fromarray(sample)
-        image.save(f'{path_output}/{i}.jpg')
+        sample = generator(dense_emb).detach()
+        sample_image = sample.squeeze(0).numpy()
+        sample_image = np.transpose(sample_image, (1, 2, 0))
+        sample_image = ((sample_image/2) + 0.5) * 255
+        sample_image = sample_image.astype(np.uint8)
+
+        if explainable:
+            disc_score = discriminator(sample)
+            disc_result = "Fake" if disc_score < 0.5 else "Real"
+            sample.requires_grad = True
+            for type in explanation_types:
+                discriminator.zero_grad()
+                if type == "saliency":
+                    explainer = Saliency(discriminator)
+                    explanation = explainer.attribute(sample)
+
+                # elif type == "shap":
+                #     explainer = DeepLiftShap(discriminator)
+                #     explanation = explainer.attribute(sample, baselines=)
+
+                elif type == "shapley_value_sampling":
+                    explainer = ShapleyValueSampling(discriminator)
+                    explanation = explainer.attribute(sample, n_samples=2)
+
+                elif type == "Integrated_Gradients":
+                    explainer = IntegratedGradients(discriminator)
+                    explanation = explainer.attribute(sample, return_convergence_delta=True)
+
+                explanation = np.transpose(explanation.squeeze().cpu().detach().numpy(), (1, 2, 0))
+
+                # explanation = ((explanation / 2) + 0.5) * 255
+                # explanation = explanation.astype(np.uint8)
+                # explanation_image = Image.fromarray(explanation)
+                # explanation_image.save(f'{path_output}/{i}_explanation.jpg')
+                sample.requires_grad = False
+                figure, axis = viz.visualize_image_attr(explanation, sample_image, method="blended_heat_map", sign="absolute_value",
+                                             show_colorbar=True, title=f"{type}, {disc_result}")
+                figure.savefig(f'{path_output}/{i}_{type}.jpg')
+
+
+        # image = Image.fromarray(sample_image)
+
+        # Save the original image
+        figure, axis = viz.visualize_image_attr(None, sample_image, method="original_image", title="Original Image")
+        figure.savefig(f'{path_output}/{i}.jpg')
+        # image.save(f'{path_output}/{i}.jpg')
     
     return
 
