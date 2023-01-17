@@ -90,15 +90,15 @@ class Experiment:
 
         logger = Logger(self.name, self.type["dataset"])
 
-        # sampling_args = {
-        #     'generator' :self.type["generator"],
-        #     "text_emb_model"  :self.type["text_emb_model"],
-        #     'use_captions'  :self.type['use_captions'],
-        #     'dataset'       :self.type["dataset"],
-        #     'noise_emb_sz'  :self.type["noise_emb_sz"],
-        #     'text_emb_sz'   :self.type["text_emb_sz"],
-        #     'Encoder_emb_sz':self.Encoder_emb_sz,
-        # }
+        sampling_args = {
+            'generator' :self.type["generator"],
+            "text_emb_model"  :self.type["text_emb_model"],
+            'use_captions'  :self.type['use_captions'],
+            'dataset'       :self.type["dataset"],
+            'noise_emb_sz'  :self.type["noise_emb_sz"],
+            'text_emb_sz'   :self.type["text_emb_sz"],
+            'Encoder_emb_sz':self.Encoder_emb_sz,
+        }
         # calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',sampling_args,numberOfSamples=15)
         # return
         
@@ -272,7 +272,7 @@ class Experiment:
                         epoch, self.epochs, n_batch, num_batches,
                         d_error, g_error, d_pred_real, d_pred_fake
                     )
-            logger.Generator_per_epoch(fake_data[0], epoch)
+            # logger.Generator_per_epoch(fake_data[0], epoch)
 
         logger.save_errors(g_loss=G_losses, d_loss=D_losses)
         timeTaken = time.time() - start_time
@@ -282,16 +282,6 @@ class Experiment:
         
         
         test_images = vectors_to_images(test_images,self.target_image_w,self.target_image_h).cpu().data    
-        
-        sampling_args = {
-            'generator' :self.type["generator"],
-            "text_emb_model"  :self.type["text_emb_model"],
-            'use_captions'  :self.type['use_captions'],
-            'dataset'       :self.type["dataset"],
-            'noise_emb_sz'  :self.type["noise_emb_sz"],
-            'text_emb_sz'   :self.type["text_emb_sz"],
-            'Encoder_emb_sz':self.Encoder_emb_sz,
-        }
         calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',sampling_args,numberOfSamples=15)
         
         logger.log_images(test_images, self.epochs + 1, 0, num_batches)

@@ -29,6 +29,7 @@ class DiscriminatorNetCIFAR10(nn.Module, ABC):
 
         self.out = nn.Sequential(
             nn.Conv2d(ndf * 4, 1, 4, 1, 0, bias=False),
+            nn.Dropout2d(p=0.2),
             nn.Sigmoid()
         )
 

@@ -60,19 +60,19 @@ class GeneratorNetCIFAR10(nn.Module, ABC):
         self.input_layer = nn.Sequential(
             nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 8),
-            nn.ReLU(True),
+            nn.LeakyReLU(0.2),
         )
 
-        self.hidden1 = nn.Sequential(
+        self.hidden1 = nn.Sequential(   
             nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf * 4),
-            nn.ReLU(True),
+            nn.LeakyReLU(0.2),
         )
 
         self.hidden2 = nn.Sequential(
             nn.ConvTranspose2d( ngf * 4, ngf * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf * 2),
-            nn.ReLU(True),
+            nn.LeakyReLU(0.2),
         )
 
         self.out = nn.Sequential(
