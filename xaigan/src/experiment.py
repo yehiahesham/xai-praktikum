@@ -32,13 +32,18 @@ class Experiment:
         self.explanationType = self.type["explanationType"]
         self.noise_emb_sz = self.type["noise_emb_sz"]
         self.text_max_len = self.type["text_max_len"]
-        self.use_one_caption = self.type["use_one_caption"]
-        self.use_CLS_emb = self.type["use_CLS_emb"]
+        self.Encoder_emb_sz = self.type["Encoder_emb_sz"] #Hyper-paramter (encoder output/ generator input)
         self.text_emb_sz = self.type["text_emb_sz"] #TODO: to be able to chanhe that in roberta
         self.target_image_w = self.type["target_image_w"] #TODO: to be able to chanhe that in roberta
         self.target_image_h = self.type["target_image_h"] #TODO: to be able to chanhe that in roberta
-        self.use_captions = self.type["use_captions"]
-        self.Encoder_emb_sz = self.type["Encoder_emb_sz"] #Hyper-paramter (encoder output/ generator input)
+        
+        self.use_CLS_emb = self.type["use_CLS_emb"]
+        self.use_captions = self.type["use_captions"]  #True: use noise and captions, False: only use noise 
+        self.use_captions_only = self.type["use_captions_only"] #True: only use captions wihtou noise, #False: use noise and captions (need use_captions=True)
+        self.use_one_caption = self.type["use_one_caption"] #with noise and captions, True: use 1 caption/image,  False: use Mult. captions/image. (need use_captions=True)
+        
+        
+        
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         # Flag for embedding network
@@ -51,15 +56,17 @@ class Experiment:
             #freezing text encoder weights
             for param in self.text_emb_model.parameters():
                 param.requires_grad = False
-                
-            self.generator = self.type["generator"](
-                noise_emb_sz=self.noise_emb_sz,
-                text_emb_sz=self.text_emb_sz,
-                n_features=self.Encoder_emb_sz).to(self.device)
-            
 
-                #Set HyperParamters for Training
-        else:
+            if  self.use_captions_only==False: #noise+Captions    
+                self.generator = self.type["generator"](
+                    noise_emb_sz=self.noise_emb_sz,
+                    text_emb_sz=self.text_emb_sz,
+                    n_features=self.Encoder_emb_sz).to(self.device) 
+            
+            else: #self.use_captions_only: #Captions 
+                self.generator = self.type["generator"](n_features=self.text_emb_sz).to(self.device)
+                                
+        else: #noise only
             self.generator = self.type["generator"](n_features=self.noise_emb_sz).to(self.device)
 
         self.discriminator = self.type["discriminator"]().to(self.device)
@@ -91,28 +98,49 @@ class Experiment:
         logger = Logger(self.name, self.type["dataset"])
 
         sampling_args = {
-            'generator' :self.type["generator"],
-            "text_emb_model"  :self.type["text_emb_model"],
-            'use_captions'  :self.type['use_captions'],
-            'dataset'       :self.type["dataset"],
-            'noise_emb_sz'  :self.type["noise_emb_sz"],
-            'text_emb_sz'   :self.type["text_emb_sz"],
-            'Encoder_emb_sz':self.Encoder_emb_sz,
+            'generator'         :self.type["generator"],
+            "text_emb_model"    :self.type["text_emb_model"],
+            'dataset'           :self.type["dataset"],
+            'noise_emb_sz'      :self.type["noise_emb_sz"],
+            'text_emb_sz'       :self.type["text_emb_sz"],
+            'Encoder_emb_sz'    :self.type["Encoder_emb_sz"],
+            'use_captions'      :self.type['use_captions'],
+            'use_captions_only' :self.type["use_captions_only"],
+            'use_one_caption'   :self.type["use_one_caption"]
         }
+
         # calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',sampling_args,numberOfSamples=15)
         # return
+
+        
+
+
+        
         
         test_noise = noise_coco(self.samples, self.cuda)
-
-        if self.use_captions:
-            random_captions = read_random_captionsFile(self.type["dataset"])
-            random_texts = get_random_text(self.samples,random_captions, self.type["dataset"]) 
-            test_texts_embs = torch.stack([self.text_emb_model.forward([random_texts[i]]).squeeze() \
-                                            for i in range(self.samples)], dim=0)
-            #concatinate the 2 embeddings
-            test_dense_emb = torch.cat( (test_texts_embs,test_noise.reshape(self.samples,-1)), 1)
-        else:
+        if self.use_captions: #will need captions, extract text emb
+            if self.use_one_caption: #1-captions/image
+                random_captions = read_random_captionsFile(self.type["dataset"])
+                random_texts = get_random_text(self.samples,random_captions, self.type["dataset"]) 
+                test_texts_embs = torch.stack([self.text_emb_model.forward([random_texts[i]]).squeeze() \
+                                                for i in range(self.samples)], dim=0)
+            else : # Mult-captions/image
+                pass 
+        
+        else:   #noise only
             test_dense_emb=test_noise
+        
+        
+        
+        if  self.use_captions and self.use_captions_only: #captions only
+            test_dense_emb=test_texts_embs[:,:,np.newaxis, np.newaxis]
+
+        elif self.use_captions and self.use_captions_only==False: #noise + captions
+            #concatinate the 2 embeddings if needed
+            test_dense_emb = torch.cat( (test_texts_embs,test_noise.reshape(self.samples,-1)), 1)
+
+        
+        
 
         self.generator.apply(weights_init)
         self.discriminator.apply(weights_init)
@@ -187,8 +215,7 @@ class Experiment:
                         #Stack text embs [batch_size,text_emb_sz]
                         texts_embs = torch.stack([self.text_emb_model.forward([batched_captions[i]]).squeeze() \
                                             for i in range(N)], dim=0)
-                        
-                    
+                  
                     elif self.use_captions and not self.use_one_caption:
                         #TODO: Need to be tested
                         for batch_elt_i in N:   #loop on batch elements
@@ -203,17 +230,21 @@ class Experiment:
                             texts_embs = torch.stack([texts_embs,singleImage_Multi_Captions_Emb], dim=0)
                     
 
-                else : 
+                else : #other datasets
                     batch_images, labels = real_batch
                     N = batch_images.size(0)
                 
                 # 0. Pass (Text+Noise) embeddings >  EmbeddingEncoder_NN > Generator_NN
-                noise_emb = noise_coco(N, self.cuda)
 
-                if self.use_captions:
+                noise_emb = noise_coco(N, self.cuda)
+                if self.use_captions and self.use_captions_only==False: #noise + captions
                     # concatinate the 2 embeddings
                     dense_emb = torch.cat((texts_embs,noise_emb.reshape(N,-1)), 1)#.to(torch.float16)
-                else:
+                
+                elif self.use_captions and self.use_captions_only: #captions only
+                    dense_emb=texts_embs[:,:,np.newaxis, np.newaxis]
+                    
+                else: #noise only
                     dense_emb = noise_emb
 
                 # 1. Train Discriminator
@@ -234,10 +265,14 @@ class Experiment:
                 
                 noise_emb = noise_coco(N, self.cuda) #new noise emb
                 
-                if self.use_captions:
-                    #concatinate the SAME 2 embeddings
+                if self.use_captions and self.use_captions_only==False: #noise + captions
+                    #concatinate the SAME text embeddings
                     dense_emb = torch.cat((texts_embs,noise_emb.reshape(N, -1)), 1)
-                else:
+                
+                elif self.use_captions and self.use_captions_only: #captions only
+                    dense_emb=texts_embs[:,:,np.newaxis, np.newaxis]
+                
+                else: #noise only
                     dense_emb=noise_emb
                
                 fake_data = self.generator(dense_emb) #generate a new fake image to train the Generator & Encoder

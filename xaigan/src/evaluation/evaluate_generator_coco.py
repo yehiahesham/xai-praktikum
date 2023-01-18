@@ -52,6 +52,7 @@ def read_random_captionsFile(dataset):
     return captions
 
 def get_random_text(number,captions,dataset):
+    if(captions==None) : return None
     N=len(captions)
     if  dataset=='mscoco':  #using MSCOC-2014 val set captions
         return [captions[random.randint(0, N)]['caption'] for i in range(0,number)]
@@ -91,27 +92,32 @@ def generate_samples_coco(number,args,path_model, path_output):
 
     generatorArch = args['generator']
     text_emb_model = args["text_emb_model"]
-    use_captions = args['use_captions']
     dataset = args['dataset']
     noise_emb_sz = args['noise_emb_sz']
     text_emb_sz = args['text_emb_sz']
     Encoder_emb_sz = args['Encoder_emb_sz']
-
-    # Declare & intializ Variables
-    random_texts = read_random_captionsFile(dataset)
-    random_texts = get_random_text(number,random_texts,dataset) #using MSCOC-2014 val set captions
-    
+    use_captions = args['use_captions']
+    use_captions_only = args['use_captions_only']
+    use_one_caption = args['use_one_caption']
     
     # Declare & intialize Models
     if use_captions:
+        # Declare & intializ Variables
+        random_texts = read_random_captionsFile(dataset)
+        random_texts = get_random_text(number,random_texts,dataset) #using MSCOC-2014 val set captions
         text_emb_model = text_emb_model()
-        generator = generatorArch(
-            noise_emb_sz=noise_emb_sz,
-            text_emb_sz=text_emb_sz,
-            n_features=Encoder_emb_sz)
         text_emb_model.eval() 
         text_emb_model.device='cpu'
-    else:
+
+        if use_captions_only==False: #noise+captions
+            generator = generatorArch(
+                noise_emb_sz=noise_emb_sz,
+                text_emb_sz=text_emb_sz,
+                n_features=Encoder_emb_sz)
+        
+        else: #captions only
+            generator = generatorArch(n_features=text_emb_sz)
+    else:    #noise only
         generator = generatorArch(n_features=noise_emb_sz)
         # generator.to('cpu')
 
@@ -124,11 +130,16 @@ def generate_samples_coco(number,args,path_model, path_output):
 
     for i in range(number):
         noise = noise_coco(1, False)
-        if use_captions:
+        
+        if use_captions :
             print(random_texts[i])
             random_text_emb = text_emb_model.forward([random_texts[i]]).detach()
-            dense_emb = torch.cat((random_text_emb,noise.reshape(1,-1)), 1)
-        else:
+            
+            if use_captions_only==False: #noise + captions
+                dense_emb = torch.cat((random_text_emb,noise.reshape(1,-1)), 1)
+            else: #captions only
+                dense_emb = random_text_emb[:,:,np.newaxis, np.newaxis]
+        else: #use_captions==False
             dense_emb=noise
         
         sample = generator(dense_emb).detach().squeeze(0).numpy()
