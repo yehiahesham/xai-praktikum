@@ -104,7 +104,7 @@ class Experiment:
             'discriminator': self.type["discriminator"],
             "explainable" :self.type["explainable"],
             "explanationType" : self.type["explanationType"],
-            "explanationTypes" : ["Integrated_Gradients","saliency", "shapley_value_sampling"]
+            "explanationTypes" : ["integrated_gradients", "saliency", "shapley_value_sampling" ] #[ "deeplift", "integrated_gradients", "saliency", "shapley_value_sampling" ]
 
         }
 

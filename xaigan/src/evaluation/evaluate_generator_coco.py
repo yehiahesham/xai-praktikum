@@ -11,7 +11,7 @@ from models.text_embedding_models import *
 from models.encoders import *
 from models.configurations import configurations
 from captum.attr import visualization as viz
-from captum.attr import DeepLiftShap, Saliency, IntegratedGradients, ShapleyValueSampling, Lime
+from captum.attr import DeepLift, Saliency, IntegratedGradients, ShapleyValueSampling, Lime
 
 
 
@@ -163,23 +163,33 @@ def generate_samples_coco(number,args,path_output):
             disc_score = discriminator(sample)
             disc_result = "Fake" if disc_score < 0.5 else "Real"
             sample.requires_grad = True
+            explanation = None
             for type in explanation_types:
                 discriminator.zero_grad()
                 if type == "saliency":
                     explainer = Saliency(discriminator)
                     explanation = explainer.attribute(sample)
 
-                # elif type == "shap":
-                #     explainer = DeepLiftShap(discriminator)
-                #     explanation = explainer.attribute(sample, baselines=)
-
                 elif type == "shapley_value_sampling":
                     explainer = ShapleyValueSampling(discriminator)
                     explanation = explainer.attribute(sample, n_samples=2)
 
-                elif type == "Integrated_Gradients":
+                elif type == "integrated_gradients":
+                    # For OpenMP error
+                    import os
+                    os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
                     explainer = IntegratedGradients(discriminator)
-                    explanation = explainer.attribute(sample, return_convergence_delta=True)
+                    explanation = explainer.attribute(sample)
+
+                elif type == "deeplift":
+                    # Delete inplace=True from ReLU's in Discriminator to work, otherwise crashes
+                    explainer = DeepLift(discriminator)
+                    explanation = explainer.attribute(sample)
+
+                # elif type == "shap":
+                #     explainer = DeepLiftShap(discriminator)
+                #     explanation = explainer.attribute(sample, baselines=)
 
                 explanation = np.transpose(explanation.squeeze().cpu().detach().numpy(), (1, 2, 0))
 
@@ -188,8 +198,11 @@ def generate_samples_coco(number,args,path_output):
                 # explanation_image = Image.fromarray(explanation)
                 # explanation_image.save(f'{path_output}/{i}_explanation.jpg')
                 sample.requires_grad = False
-                figure, axis = viz.visualize_image_attr(explanation, sample_image, method="blended_heat_map", sign="absolute_value",
-                                             show_colorbar=True, title=f"{type}, {disc_result}")
+                # figure, axis = viz.visualize_image_attr(explanation, sample_image, method="blended_heat_map", sign="absolute_value",
+                #                                                         show_colorbar=True, title=f"{type}, {disc_result}")
+                # Different visualization
+                figure, axis = viz.visualize_image_attr(explanation, sample_image, method="blended_heat_map", sign="all",
+                                                        show_colorbar=True, title=f"{type}, {disc_result}")
                 figure.savefig(f'{path_output}/{i}_{type}.jpg')
 
 
