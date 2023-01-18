@@ -143,14 +143,16 @@ class Glove_Embbeding(torch.nn.Module):
         function agrregates word embeddings to get a setence embedding. 
         we might need attention model here /RNN!
         '''
-        colors = ['blue','red','green']
+        colors = ['blue','red','green', 'yellow']
         caption=caption[0] #todo check
         sentence_tokens = self.tokenizer(caption)
         for color in colors:
             if color in sentence_tokens : 
-                return self.vocab.get_vecs_by_tokens(color, lower_case_backup=True).to(self.device)
+                embbeding  = self.vocab.get_vecs_by_tokens(color, lower_case_backup=True).to(self.device)
+                return torch.unsqueeze(embbeding, dim=0)
 
-        return self.vocab.get_vecs_by_tokens(sentence_tokens[random.randint(0, len(sentence_tokens)-1)], lower_case_backup=True).to(self.device)
+        embbeding  = self.vocab.get_vecs_by_tokens(sentence_tokens[random.randint(0, len(sentence_tokens)-1)], lower_case_backup=True).to(self.device)
+        return torch.unsqueeze(embbeding, dim=0)
 
 
         self.vocab.get_vecs_by_tokens(X, lower_case_backup=True).to(self.device)
