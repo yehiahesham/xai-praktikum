@@ -12,7 +12,14 @@ from models.encoders import *
 from models.configurations import configurations
 from captum.attr import visualization as viz
 from captum.attr import DeepLift, Saliency, IntegratedGradients, ShapleyValueSampling, Lime
-
+from lime import lime_image
+from copy import deepcopy
+from utils.vector_utils import values_target
+#from utils.explanation_utils import batch_predict_flower
+from torch.nn import functional as F
+from skimage.segmentation import mark_boundaries
+from PIL import Image
+import matplotlib.pyplot as plt
 
 
 
@@ -106,6 +113,7 @@ def generate_samples_coco(number,args,path_output):
     explainable = args["explainable"]
     explanation_type = args["explanationType"]
     explanation_types = args["explanationTypes"]
+    #print(explanation_types)
     discriminatorArch = args["discriminator"]
     disc_path = args['pretrained_discriminatorPath']
 
@@ -161,6 +169,7 @@ def generate_samples_coco(number,args,path_output):
 
         if explainable:
             disc_score = discriminator(sample)
+            #print(disc_score.dtype)
             disc_result = "Fake" if disc_score < 0.5 else "Real"
             sample.requires_grad = True
             explanation = None
@@ -186,12 +195,91 @@ def generate_samples_coco(number,args,path_output):
                     # Delete inplace=True from ReLU's in Discriminator to work, otherwise crashes
                     explainer = DeepLift(discriminator)
                     explanation = explainer.attribute(sample)
+                    #print(explanation.shape)
+                    
 
-                # elif type == "shap":
-                #     explainer = DeepLiftShap(discriminator)
-                #     explanation = explainer.attribute(sample, baselines=)
+                elif type == "lime":
+                    """
 
-                explanation = np.transpose(explanation.squeeze().cpu().detach().numpy(), (1, 2, 0))
+                    
+
+                    temp = values_target(size=sample.size(), value=1.0, cuda=True)
+                    #print(sample.shape)
+
+                    # mask values with low prediction
+                    mask = (disc_score < 0.5).view(-1)
+                    indices = (mask.nonzero(as_tuple=False)).detach().cpu().numpy().flatten().tolist()
+
+                    data = sample[mask, :]
+                    
+                    #sample = sample.permute(1, 2, 0).numpy().astype(np.double)
+                    explainer = lime_image.LimeImageExplainer()
+                    global discriminatorLime
+                    discriminatorLime = deepcopy(discriminator)
+                    discriminatorLime.cpu()
+                    discriminatorLime.eval()
+                    tmp = 0
+                    for i in range(len(indices)):
+                        
+                        tmp = data[i, :].detach().cpu().numpy()
+                        tmp = np.reshape(tmp, (32, 32, 3)).astype(np.double)
+                    exp = explainer.explain_instance(tmp, batch_predict_flower, num_samples=100)
+                    #print(exp)
+                        #print(exp)
+                        #print(explanation.shape)
+                        
+                    del discriminatorLime
+                    
+
+                
+                    temp, mask = exp.get_image_and_mask(explanation.top_labels[0], positive_only=False, num_features=10, hide_rest=False)
+                    img_boundry2 = mark_boundaries(temp/255.0, mask).astype(float)
+                    max = np.max(img_boundry2)
+                    min = np.min(img_boundry2)
+                    ranges = max - min
+                    img_boundry2 = (img_boundry2+np.abs(min))/ranges
+                    #print(img_boundry2.shape)
+                    #print((img_boundry2).shape)
+                    #print(img_boundry2)
+                    #plt.imshow(img_boundry2)
+                    #plt.show()
+                    
+                    explanation = img_boundry2
+                    """
+                    #sample.requires_grad = False
+                    global discriminatorLime
+                    discriminatorLime = deepcopy(discriminator)
+                    discriminatorLime.cpu()
+                    discriminatorLime.eval()
+                    samplelime = sample.permute(0,2,3,1).detach().numpy().astype(np.double).squeeze()
+                    #print(sample.shape)
+                    explainer = lime_image.LimeImageExplainer()
+
+                    exp = explainer.explain_instance(image=samplelime, classifier_fn = predict, labels = (0,), num_samples=10)
+
+                    temp, mask = exp.get_image_and_mask(exp.top_labels[0], positive_only=False, num_features=5, hide_rest=True)
+                    #plt.imshow(mark_boundaries(temp / 2 + 0.5, mask))
+                    img_boundry2 = mark_boundaries(temp/255.0, mask).astype(float)
+                    #print(img_boundry2)
+                    max = np.max(img_boundry2)
+                    min = np.min(img_boundry2)
+                    ranges = max - min
+                    img_boundry2 = (img_boundry2+np.abs(min))/ranges
+                    explanation = img_boundry2
+                    #print(explanation)
+                    #plt.imshow(img_boundry2)
+                    #plt.show()
+                    
+                    
+                    
+               
+    
+                if type != 'lime':
+                    explanation = np.transpose(explanation.squeeze().cpu().detach().numpy(), (1, 2, 0))
+                #explanation = np.transpose(explanation.squeeze(), (1, 2, 0))
+                else:
+                    explanation = explanation.squeeze()
+                #print(explanation.shape)
 
                 # explanation = ((explanation / 2) + 0.5) * 255
                 # explanation = explanation.astype(np.uint8)
@@ -201,19 +289,46 @@ def generate_samples_coco(number,args,path_output):
                 # figure, axis = viz.visualize_image_attr(explanation, sample_image, method="blended_heat_map", sign="absolute_value",
                 #                                                         show_colorbar=True, title=f"{type}, {disc_result}")
                 # Different visualization
-                figure, axis = viz.visualize_image_attr(explanation, sample_image, method="blended_heat_map", sign="all",
+                figure, axis = viz.visualize_image_attr(explanation, sample_image, method="absolute_value", sign="all",
                                                         show_colorbar=True, title=f"{type}, {disc_result}")
                 figure.savefig(f'{path_output}/{i}_{type}.jpg')
 
 
-        # image = Image.fromarray(sample_image)
+            #image = Image.fromarray(sample_image)
 
         # Save the original image
         figure, axis = viz.visualize_image_attr(None, sample_image, method="original_image", title="Original Image")
         figure.savefig(f'{path_output}/{i}.jpg')
         # image.save(f'{path_output}/{i}.jpg')
-    
+        
+        
     return
+
+def batch_predict_flower(images):
+    # stack up all images
+    print(images.shape)
+    images = np.transpose(images, (0, 3, 1, 2))
+    #print(images.shape)
+    batch = torch.stack([i for i in torch.Tensor(images)], dim=0)
+    logits = discriminatorLime(batch)
+    probs = F.softmax(logits, dim=1).view(-1).unsqueeze(1)
+    #print(probs)
+    return probs.detach().numpy()
+
+def predict(images):
+    # stack up all images
+    #print(images.shape)
+    images = np.transpose(images, (0, 3, 1, 2))
+    #print(images.shape)
+    #print(images.shape)
+    batch = torch.stack([i for i in torch.Tensor(images)], dim=0)
+    logits = discriminatorLime(batch)
+    probs = F.softmax(logits, dim=1).view(-1).unsqueeze(1)
+    #print(logits.detach().squeeze(1).squeeze(1).shape)
+    #print(probs.shape)
+    a = probs.detach().numpy()
+    #print(a)
+    return a
 
 
 if __name__ == "__main__":
