@@ -289,7 +289,7 @@ def generate_samples_coco(number,args,path_output):
                 # figure, axis = viz.visualize_image_attr(explanation, sample_image, method="blended_heat_map", sign="absolute_value",
                 #                                                         show_colorbar=True, title=f"{type}, {disc_result}")
                 # Different visualization
-                figure, axis = viz.visualize_image_attr(explanation, sample_image, method="absolute_value", sign="all",
+                figure, axis = viz.visualize_image_attr(explanation, sample_image, method= "blended_heat_map", sign="absolute_value",
                                                         show_colorbar=True, title=f"{type}, {disc_result}")
                 figure.savefig(f'{path_output}/{i}_{type}.jpg')
 
