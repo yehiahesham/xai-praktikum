@@ -4,6 +4,22 @@ import torch.nn as nn
 from torch.autograd.variable import Variable
 
 
+def images_to_vectors(images: Tensor) -> Tensor:
+    """ converts (Nx28x28) tensor to (Nx784) torch tensor """
+    return images.view(images.size(0), 32 * 32)
+
+
+def images_to_vectors_numpy(images: np.array) -> Tensor:
+    """ converts (Nx28x28) np array to (Nx784) torch tensor """
+    images = images.reshape(images.shape[0], images.shape[1]*images.shape[2], images.shape[3])
+    return from_numpy(images[:, :, 0])
+
+
+def images_to_vectors_numpy_multiclass(images: np.array) -> Tensor:
+    """ converts (Nx28x28) numpy array to (Nx784) tensor in multiclass setting"""
+    images = images.reshape(images.shape[0], images.shape[2]*images.shape[3], images.shape[1])
+    return from_numpy(images[:, :, 0])
+
 def vectors_to_images(vectors,w,h):
     return vectors.view(vectors.size(0), 3, w,h)
 

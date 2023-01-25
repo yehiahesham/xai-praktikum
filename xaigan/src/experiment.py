@@ -2,7 +2,7 @@ from get_data import get_loader
 from utils.vector_utils import  values_target, weights_init, vectors_to_images_coco,vectors_to_images, noise_coco
 from evaluation.evaluate_generator_coco import calculate_metrics_coco, read_random_captionsFile,get_random_text
 from logger import Logger
-from utils.explanation_utils import get_explanation, explanation_hook_coco
+from utils.explanation_utils import get_explanation,explanation_hook
 from torch.autograd import Variable
 from torch import nn
 import torch
@@ -176,13 +176,9 @@ class Experiment:
         # Start training
         for epoch in range(1, self.epochs + 1):
 
-            if self.explainable and (epoch - 1) == explanationSwitch:
-                
-
-                if self.type["dataset"] == "mscoco":
-                    self.generator.out.register_backward_hook(explanation_hook_coco)
-
-                local_explainable = False#True            
+            if self.explainable and (epoch - 1) == explanationSwitch:    
+                self.generator.out.register_backward_hook(explanation_hook)
+                local_explainable = True            
             
             for n_batch, (real_batch) in enumerate(loader):
                 

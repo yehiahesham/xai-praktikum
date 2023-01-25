@@ -4,7 +4,7 @@ import numpy as np
 from copy import deepcopy
 from torch.nn import functional as F
 from captum.attr import DeepLiftShap, Saliency, IntegratedGradients
-from utils.vector_utils import values_target
+from utils.vector_utils import values_target,images_to_vectors
 # from lime import lime_image
 
 
@@ -68,7 +68,7 @@ def get_explanation(generated_data, discriminator, prediction, XAItype="shap", c
         temp = temp.cuda()
     set_values(normalize_vector(temp))
 
-def explanation_hook_coco(module, grad_input, grad_output):
+def explanation_hook(module, grad_input, grad_output):
     """
     This function creates explanation hook which is run every time the backward function of the gradients is called
     :param module: the name of the layer
