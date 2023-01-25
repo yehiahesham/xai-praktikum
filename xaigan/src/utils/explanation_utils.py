@@ -1,8 +1,9 @@
+import torch
+import os
 import numpy as np
 from copy import deepcopy
-import torch
 from torch.nn import functional as F
-from captum.attr import DeepLiftShap, Saliency
+from captum.attr import DeepLiftShap, Saliency, IntegratedGradients
 from utils.vector_utils import values_target
 # from lime import lime_image
 
@@ -34,6 +35,14 @@ def get_explanation(generated_data, discriminator, prediction, XAItype="shap", c
             for i in range(len(indices)):
                 explainer = DeepLiftShap(discriminator)
                 temp[indices[i], :] = explainer.attribute(data[i, :].detach().unsqueeze(0), trained_data, target=0)
+
+        elif XAItype == "integrated_gradients":
+           
+            
+            os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"  # For OpenMP error
+
+            explainer = IntegratedGradients(discriminator)
+            explanation = explainer.attribute(sample)
 
         # elif XAItype == "lime":
         #     explainer = lime_image.LimeImageExplainer()

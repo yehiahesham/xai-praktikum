@@ -97,26 +97,31 @@ class Experiment:
 
         logger = Logger(self.name, self.type["dataset"])
 
+
         sampling_args = {
-            'generator'         :self.type["generator"],
-            "text_emb_model"    :self.type["text_emb_model"],
-            'dataset'           :self.type["dataset"],
-            'noise_emb_sz'      :self.type["noise_emb_sz"],
-            'text_emb_sz'       :self.type["text_emb_sz"],
-            'Encoder_emb_sz'    :self.type["Encoder_emb_sz"],
-            'use_captions'      :self.type['use_captions'],
-            'use_captions_only' :self.type["use_captions_only"],
-            'use_one_caption'   :self.type["use_one_caption"]
+            'generator' :self.type["generator"],
+            'pretrained_generatorPath': f'{logger.data_subdir}/generator.pt',
+            "pretrained_discriminatorPath": f'{logger.data_subdir}/discriminator.pt',
+            "text_emb_model"  :self.type["text_emb_model"],           
+            'dataset'       :self.type["dataset"],
+            'noise_emb_sz'  :self.type["noise_emb_sz"],
+            'text_emb_sz'   :self.type["text_emb_sz"],
+            'Encoder_emb_sz':self.Encoder_emb_sz,
+            'discriminator': self.type["discriminator"],
+
+            'use_captions'  :self.type['use_captions'],
+            'use_one_caption'  :self.type['use_one_caption'],
+            'use_captions_only'  :self.type['use_captions_only'],
+            
+            "explainable" :self.type["explainable"],
+            "explanationType" : self.type["explanationType"],
+            "explanationTypes" : ["integrated_gradients", "saliency", "shapley_value_sampling" ], #[ "deeplift", "integrated_gradients", "saliency", "shapley_value_sampling" ]
+            
         }
 
-        # calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',sampling_args,numberOfSamples=15)
+        # calculate_metrics_coco(sampling_args,numberOfSamples=15)
         # return
 
-        
-
-
-        
-        
         test_noise = noise_coco(self.samples, self.cuda)
         if self.use_captions: #will need captions, extract text emb
             if self.use_one_caption: #1-captions/image
@@ -317,7 +322,7 @@ class Experiment:
         
         
         test_images = vectors_to_images(test_images,self.target_image_w,self.target_image_h).cpu().data    
-        calculate_metrics_coco(f'{logger.data_subdir}/generator.pt',sampling_args,numberOfSamples=15)
+        calculate_metrics_coco(sampling_args,numberOfSamples=15)
         
         logger.log_images(test_images, self.epochs + 1, 0, num_batches)
         logger.save_scores(timeTaken, 0)
