@@ -91,9 +91,25 @@ def extract_explanation(model,sample,type):
         explanation = explainer.attribute(sample)
         
     elif type == "lime":
+        feature_mask,kernel_sz,id =None,1, 0
+        if kernel_sz>1:
+            w,h=sample.shape[2],sample.shape[3]  #ex:2 , then 2x2 feature mask  
+            e_h = w - kernel_sz +1 
+            e_w = h - kernel_sz +1
+            feature_mask=torch.zeros(w,h,dtype=torch.long) # mask like our image , ex: 32x32
+            for i in range(0,e_h,kernel_sz): #32x32 image
+                for j in range(0,e_w,kernel_sz):
+                    feature_mask[i][j]=id; feature_mask[i+1][j]=id
+                    feature_mask[i][j+1]=id; feature_mask[i+1][j+1]=id
+                    id+=1
+        
         exp_eucl_distance = get_exp_kernel_similarity_function('euclidean', kernel_width=1000)
         lime = Lime(model,interpretable_model=SkLearnLinearRegression(),similarity_func=exp_eucl_distance)
-        explanation = lime.attribute(sample,target=0,n_samples=200,perturbations_per_eval=100,show_progress=True)
+        explanation = lime.attribute(sample,target=0,feature_mask=feature_mask,n_samples=50,perturbations_per_eval=100,show_progress=True)
+        
+
+    
+
     
     return explanation
 
