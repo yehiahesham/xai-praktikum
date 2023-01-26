@@ -3,22 +3,25 @@ import os
 import torch
 import argparse
 import random, string,json
+import matplotlib.pyplot as plt
+
 from PIL import Image
-from utils.vector_utils import noise_coco
+from copy import deepcopy
+from utils.vector_utils import noise_coco, values_target
+from utils.explanation_utils import extract_explanation
+from torch.nn import functional as F
 
 from models.generators import *
 from models.text_embedding_models import *
 from models.encoders import *
 from models.configurations import configurations
+
 from captum.attr import visualization as viz
-from captum.attr import DeepLift, Saliency, IntegratedGradients, ShapleyValueSampling, Lime
+from captum.attr import DeepLift, Saliency, IntegratedGradients, ShapleyValueSampling, Lime,LimeBase
+from captum._utils.models.linear_model import SkLearnLinearRegression, SkLearnLasso
+from captum.attr._core.lime import get_exp_kernel_similarity_function
 # from lime import lime_image
-from copy import deepcopy
-from utils.vector_utils import values_target
-from torch.nn import functional as F
 # from skimage.segmentation import mark_boundaries
-from PIL import Image
-import matplotlib.pyplot as plt
 
 
 
@@ -86,7 +89,6 @@ def calculate_metrics_coco(args,numberOfSamples=2048):
         os.makedirs(folder)
     generate_samples_coco(numberOfSamples,args, path_output=folder)
     return
-
 
 def generate_samples_coco(number,args,path_output):
     """
@@ -174,70 +176,26 @@ def generate_samples_coco(number,args,path_output):
         sample_image = sample_image.astype(np.uint8)
 
         if explainable:
-            disc_score = discriminator(sample)
-            #print(disc_score.dtype)
+            disc_score= discriminator(sample)
             disc_result = "Fake" if disc_score < 0.5 else "Real"
+            disc_score = round(disc_score.item(),4) # p = score of being Real. here we want all generated images to be fake, ie <0.5
             sample.requires_grad = True
+            sample_bk = sample
             explanation = None
             for type in explanation_types:
+                #reset the gradients of model's weights and the input.
                 discriminator.zero_grad()
-                if type == "saliency":
-                    explainer = Saliency(discriminator)
-                    explanation = explainer.attribute(sample)
+                sample=sample_bk
+                explanation = extract_explanation(discriminator,sample,type)
+                explanation = np.transpose(explanation.squeeze().cpu().detach().numpy(), (1, 2, 0))
 
-                elif type == "shapley_value_sampling":
-                    explainer = ShapleyValueSampling(discriminator)
-                    explanation = explainer.attribute(sample, n_samples=2)
-
-                elif type == "integrated_gradients":
-                    # For OpenMP error
-                    import os
-                    os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-
-                    explainer = IntegratedGradients(discriminator)
-                    explanation = explainer.attribute(sample)
-
-                elif type == "deeplift":
-                    # Delete inplace=True from ReLU's in Discriminator to work, otherwise crashes
-                    explainer = DeepLift(discriminator)
-                    explanation = explainer.attribute(sample)
-                    
-                elif type == "lime":
-                    global discriminatorLime
-                    discriminatorLime = deepcopy(discriminator)
-                    discriminatorLime.cpu()
-                    discriminatorLime.eval()
-                    lime_ref_sample = sample.permute(0,2,3,1).detach().numpy().astype(np.double).squeeze()
-                    explainer = lime_image.LimeImageExplainer()
-                    def predict(images):                        
-                        images = np.transpose(images, (0, 3, 1, 2)) # stack up all images
-                        batch = torch.stack([i for i in torch.Tensor(images)], dim=0)
-                        return  discriminatorLime(batch)
-
-                    explainer = explainer.explain_instance(image=lime_ref_sample, classifier_fn = predict, labels = (0,), num_samples=10)
-
-                    temp, mask = explainer.get_image_and_mask(explainer.top_labels[0], positive_only=False, num_features=5, hide_rest=True)
-                    img_boundry = mark_boundaries(temp/255.0, mask).astype(float)
-                    max = np.max(img_boundry)
-                    min = np.min(img_boundry)
-                    img_boundry = (img_boundry+np.abs(min))/(max - min)
-                    explanation = img_boundry
-                    
-                    
-                    
-    
-                if type != 'lime':
-                    explanation = np.transpose(explanation.squeeze().cpu().detach().numpy(), (1, 2, 0))
-                else:
-                    explanation = explanation.squeeze()
-                
                 # Overlay explaination ontop of the original image
-                figure, axis = viz.visualize_image_attr(explanation, sample_image, method= "blended_heat_map", sign="absolute_value",
-                                                        show_colorbar=True, title=f"{type}, {disc_result}")
+                figure, axis = viz.visualize_image_attr(explanation, sample_image, method= "blended_heat_map", sign="all",
+                                                    show_colorbar=True,title=f"{type}, {disc_result}, D(G(z))={disc_score}")
                 # Then Save explanation
                 figure.savefig(f'{path_output}/{i}_{type}.jpg')
                 
-                sample.requires_grad = False #reset
+            sample.requires_grad = False
 
 
         # Save the original image

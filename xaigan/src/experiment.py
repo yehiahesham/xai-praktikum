@@ -115,7 +115,7 @@ class Experiment:
             
             "explainable" :self.type["explainable"],
             "explanationType" : self.type["explanationType"],
-            "explanationTypes" : ["integrated_gradients", "saliency", "shapley_value_sampling" ], #[ "deeplift", "integrated_gradients", "saliency", "shapley_value_sampling" ]
+            "explanationTypes" : ["lime","integrated_gradients", "saliency", "shapley_value_sampling","deeplift"],
             
         }
 

@@ -164,7 +164,7 @@ class ExperimentEnums(Enum):
 
 
 ######
-    CIFAR10_only = {
+    CIFAR10_only_SaliencyTrain = {
         "explainable"     :True,
         "explanationType" :"saliency",
         "noise_emb_sz"    :100,            #GeneratorNetMSCOCO's noise param
@@ -194,7 +194,7 @@ class ExperimentEnums(Enum):
         "loss": nn.BCELoss(),
         "epochs": 200
     }
-    
+  
    
 
     def __str__(self):

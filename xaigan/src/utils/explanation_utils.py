@@ -3,7 +3,9 @@ import os
 import numpy as np
 from copy import deepcopy
 from torch.nn import functional as F
-from captum.attr import DeepLiftShap, Saliency, IntegratedGradients
+from captum.attr import DeepLiftShap,DeepLift, Saliency, IntegratedGradients, ShapleyValueSampling, Lime,LimeBase
+from captum._utils.models.linear_model import SkLearnLinearRegression, SkLearnLasso
+from captum.attr._core.lime import get_exp_kernel_similarity_function
 from utils.vector_utils import values_target,images_to_vectors
 # from lime import lime_image
 
@@ -67,6 +69,34 @@ def get_explanation(generated_data, discriminator, prediction, XAItype="shap", c
     if cuda:
         temp = temp.cuda()
     set_values(normalize_vector(temp))
+
+
+def extract_explanation(model,sample,type):
+    if type == "saliency":
+                explainer = Saliency(model)
+                explanation = explainer.attribute(sample)
+
+    elif type == "shapley_value_sampling":
+        explainer = ShapleyValueSampling(model)
+        explanation = explainer.attribute(sample, n_samples=2)
+        
+    elif type == "integrated_gradients":
+        os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE" # For OpenMP error
+        explainer = IntegratedGradients(model)
+        explanation = explainer.attribute(sample)
+
+    elif type == "deeplift":
+        # Delete inplace=True from ReLU's in model to work, otherwise crashes
+        explainer = DeepLift(model)
+        explanation = explainer.attribute(sample)
+        
+    elif type == "lime":
+        exp_eucl_distance = get_exp_kernel_similarity_function('euclidean', kernel_width=1000)
+        lime = Lime(model,interpretable_model=SkLearnLinearRegression(),similarity_func=exp_eucl_distance)
+        explanation = lime.attribute(sample,target=0,n_samples=200,perturbations_per_eval=100,show_progress=True)
+    
+    return explanation
+
 
 def explanation_hook(module, grad_input, grad_output):
     """
