@@ -8,6 +8,14 @@ from captum._utils.models.linear_model import SkLearnLinearRegression, SkLearnLa
 from captum.attr._core.lime import get_exp_kernel_similarity_function
 from utils.vector_utils import values_target,images_to_vectors
 # from lime import lime_image
+from lime import lime_image
+from copy import deepcopy
+from utils.vector_utils import values_target
+#from utils.explanation_utils import batch_predict_flower
+from torch.nn import functional as F
+from skimage.segmentation import mark_boundaries
+from PIL import Image
+import matplotlib.pyplot as plt
 
 
 # defining global variables
@@ -106,12 +114,45 @@ def extract_explanation(model,sample,type):
         exp_eucl_distance = get_exp_kernel_similarity_function('euclidean', kernel_width=1000)
         lime = Lime(model,interpretable_model=SkLearnLinearRegression(),similarity_func=exp_eucl_distance)
         explanation = lime.attribute(sample,target=0,feature_mask=feature_mask,n_samples=50,perturbations_per_eval=100,show_progress=True)
+    
+    elif type == 'lime2':
+        global discriminatorLime
+        discriminatorLime = deepcopy(model)
+        discriminatorLime.cpu()
+        discriminatorLime.eval()
+        samplelime = sample.permute(0,2,3,1).detach().numpy().astype(np.double).squeeze()
+        #print(sample.shape)
+        explainer = lime_image.LimeImageExplainer()
+
+        exp = explainer.explain_instance(image=samplelime, classifier_fn = predict, labels = (1), num_samples=100)
+
+        temp, mask = exp.get_image_and_mask(exp.top_labels[0], positive_only=False, num_features=5, hide_rest=False,min_weight = 0.0)
+        #temp4, mask4 = exp.get_image_and_mask(exp.top_labels[0], positive_only=False, num_features=1, hide_rest=False,min_weight = 0.0)
+        #temp2, mask2 = exp.get_image_and_mask(exp.top_labels[0], positive_only=True, num_features=5, hide_rest=True,min_weight = 0.0)
+        #temp3, mask3 = exp.get_image_and_mask(exp.top_labels[0], positive_only =False,negative_only =True, num_features=5, hide_rest=True,min_weight = 0.0)
+        #plt.imshow(mark_boundaries(temp / 2 + 0.5, mask))
+        img_boundry = mark_boundaries(temp/2 + 0.5, mask).astype(float)
+        #img_boundry2 = mark_boundaries(temp2/2 + 0.5, mask2).astype(float)
+        #img_boundry3 = mark_boundaries(temp3/2 + 0.5, mask3).astype(float)
+        #img_boundry4 = mark_boundaries(temp4/2 + 0.5, mask4).astype(float)
+        explanation = torch.from_numpy(img_boundry).permute(2,0,1)
+        #print(explanation.shape)
+        
+        
+
         
 
     
 
     
     return explanation
+
+def predict(images):
+    # stack up all images
+    images = np.transpose(images, (0, 3, 1, 2))
+    batch = torch.stack([i for i in torch.Tensor(images)], dim=0)
+    prob = discriminatorLime(batch)
+    return prob.view(-1).unsqueeze(1).detach().numpy()
 
 
 def explanation_hook(module, grad_input, grad_output):

@@ -36,7 +36,7 @@ def main():
             'discriminator' :DiscriminatorNetCIFAR10,            
             "pretrained_discriminatorPath": args.discriminator,
             'images_path': 'demo',
-            "explanationTypes" : ["lime","integrated_gradients", "saliency", "shapley_value_sampling","deeplift"],
+            "explanationTypes" : ["lime2"],#"integrated_gradients", "saliency", "shapley_value_sampling","deeplift"],
             "image_w":32,
             "image_h":32,
         }
@@ -58,7 +58,7 @@ def run_explaination_demo(args):
         os.makedirs(folder)
 
 
-    images_path=f"{os.getcwd()}/{args['images_path']}"
+    images_path=r'D:\Praktikum\xai_demo\xai-praktikum\demo' #f"{os.getcwd()}/{args['images_path']}"
     image_w=args['image_w']
     image_h=args['image_h']
 
@@ -105,6 +105,12 @@ def run_explaination_demo_on_images(loader,args,path_output):
             
             explanation = extract_explanation(discriminator,sample,type)
             explanation = np.transpose(explanation.squeeze().cpu().detach().numpy(), (1, 2, 0))
+            if type == 'lime2':
+                
+                plt.imshow(explanation)
+                plt.title(f"{type}, {disc_result}, D(G(z))={disc_score}")
+                plt.savefig(f'{path_output}/{i_image}_{type}' +'_boundry'+'.jpg')
+                plt.show()
             
             # Overlay explaination ontop of the original image
             figure, axis = viz.visualize_image_attr(explanation, sample_image, method= "blended_heat_map", sign="all",
