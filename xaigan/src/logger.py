@@ -138,6 +138,9 @@ class Logger:
             'loss': loss,
             }, f'{self.data_subdir}/{name}.pt')
     
+    def savefig(self,fig,filename):
+        fig.savefig(f'{self.data_subdir}/{filename}.png')
+
     def close(self):
         self.writer.close()
 

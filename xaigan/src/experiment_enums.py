@@ -47,6 +47,7 @@ class ExperimentEnums(Enum):
     #     "explanationType" :None,
     #     "noise_emb_sz"    :100,            #GeneratorNetMSCOCO's noise param
     #     "text_emb_sz"     :768,    #TODO:  #RobertaClass's param
+    #     'Encoder_emb_sz'  :(100+767)//2,
     #     "text_max_len"    :350,            #RobertaClass's param
     #     "use_CLS_emb"     :False,          #RobertaClass's param
     #     "use_one_caption" :True ,          #RobertaClass's param + param used in experiment 

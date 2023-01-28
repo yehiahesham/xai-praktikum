@@ -8,14 +8,7 @@ from captum._utils.models.linear_model import SkLearnLinearRegression, SkLearnLa
 from captum.attr._core.lime import get_exp_kernel_similarity_function
 from utils.vector_utils import values_target,images_to_vectors
 # from lime import lime_image
-from lime import lime_image
-from copy import deepcopy
-from utils.vector_utils import values_target
-#from utils.explanation_utils import batch_predict_flower
-from torch.nn import functional as F
-from skimage.segmentation import mark_boundaries
-from PIL import Image
-import matplotlib.pyplot as plt
+# from skimage.segmentation import mark_boundaries
 
 
 # defining global variables
@@ -47,12 +40,7 @@ def get_explanation(generated_data, discriminator, prediction, XAItype="shap", c
                 temp[indices[i], :] = explainer.attribute(data[i, :].detach().unsqueeze(0), trained_data, target=0)
 
         elif XAItype == "integrated_gradients":
-           
-            
-            os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"  # For OpenMP error
-
-            explainer = IntegratedGradients(discriminator)
-            explanation = explainer.attribute(sample)
+            pass
 
         # elif XAItype == "lime":
         #     explainer = lime_image.LimeImageExplainer()
@@ -121,7 +109,12 @@ def extract_explanation(model,sample,type):
         discriminatorLime.cpu()
         discriminatorLime.eval()
         samplelime = sample.permute(0,2,3,1).detach().numpy().astype(np.double).squeeze()
-        #print(sample.shape)
+        
+        def predict(images):
+            images = np.transpose(images, (0, 3, 1, 2)) # stack up all images
+            batch = torch.stack([i for i in torch.Tensor(images)], dim=0)
+            prob = discriminatorLime(batch)
+            return prob.view(-1).unsqueeze(1).detach().numpy()
         explainer = lime_image.LimeImageExplainer()
 
         exp = explainer.explain_instance(image=samplelime, classifier_fn = predict, labels = (1), num_samples=100)
@@ -136,23 +129,9 @@ def extract_explanation(model,sample,type):
         #img_boundry3 = mark_boundaries(temp3/2 + 0.5, mask3).astype(float)
         #img_boundry4 = mark_boundaries(temp4/2 + 0.5, mask4).astype(float)
         explanation = torch.from_numpy(img_boundry).permute(2,0,1)
-        #print(explanation.shape)
-        
-        
-
-        
-
-    
-
-    
+            
     return explanation
 
-def predict(images):
-    # stack up all images
-    images = np.transpose(images, (0, 3, 1, 2))
-    batch = torch.stack([i for i in torch.Tensor(images)], dim=0)
-    prob = discriminatorLime(batch)
-    return prob.view(-1).unsqueeze(1).detach().numpy()
 
 
 def explanation_hook(module, grad_input, grad_output):

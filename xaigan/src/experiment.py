@@ -12,7 +12,9 @@ import string
 import pandas as pd
 import numpy as np
 
-
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+from matplotlib import cm
 
 
 class Experiment:
@@ -314,9 +316,6 @@ class Experiment:
         timeTaken = time.time() - start_time
         test_images = self.generator(test_dense_emb)
 
-        
-        
-        
         test_images = vectors_to_images(test_images,self.target_image_w,self.target_image_h).cpu().data    
         calculate_metrics_coco(sampling_args,numberOfSamples=15)
         
@@ -394,3 +393,93 @@ class Experiment:
 
         # Return error and predictions for real and fake inputs
         return (error_real + error_fake) / 2, prediction_real, prediction_fake
+
+    def visualize(self):
+        tsne_embeddings_text  = torch.zeros((0, self.text_emb_sz), dtype=torch.float32)
+        tsne_embeddings_noise = torch.zeros((0, self.noise_emb_sz,1,1), dtype=torch.float32)
+        loader = get_loader(self.type["batchSize"], self.type["percentage"], self.type["dataset"], self.target_image_w, self.target_image_h)
+        logger = Logger(self.name, self.type["dataset"])
+        for n_batch, (real_batch) in enumerate(loader):
+            
+            if  self.type["dataset"]=='mscoco' :
+                N = len(real_batch)
+                batch_images = torch.stack([real_batch[i][0] for i  in range(0,N)] , dim=0)
+                batch_images = batch_images.reshape((N, 3, self.target_image_w, self.target_image_h))
+                
+                #TODO:need to do text extract from dataset, then text embedding.
+
+            elif self.type["dataset"] == 'flowers-102':
+                batch_images,labels,captions = real_batch #images,classes, Matrix of (10,batch_size) =>  10 cap/per image
+                N = batch_images.size(0)
+                MAX_CAPTIONS_PER_IMAGE=10
+
+                #text proccess if needed 
+                texts_embs = None
+                if   self.use_captions and self.use_one_caption:
+                    batched_captions = []
+                    # pick best caption as captions with longest length
+                    for batch_elt_i in range(N):   #loop on batch elements
+                        caption_with_max_len=max([captions[caption_j][batch_elt_i] for caption_j in range (0,MAX_CAPTIONS_PER_IMAGE)] ,key=len)
+                        batched_captions.append(caption_with_max_len)                            
+                
+                    #Stack text embs [batch_size,text_emb_sz]
+                    texts_embs = torch.stack([self.text_emb_model.forward([batched_captions[i]]).squeeze() \
+                                        for i in range(N)], dim=0)
+                
+                elif self.use_captions and not self.use_one_caption:
+                    #TODO: test
+                    for batch_elt_i in N:   #loop on batch elements
+                        singleImage_Multi_captions = [captions[caption_j][batch_elt_i] for caption_j in range (0,MAX_CAPTIONS_PER_IMAGE)]
+                        singleImage_Multi_Captions_Emb = torch.stack([self.text_emb_model.forward(singleImage_Multi_captions).squeeze() \
+                                        for i in range(N)], dim=0)
+                        
+                        #Aggregation function: averging (Hyperparamerte\r) 
+                        singleImage_Multi_Captions_Emb = singleImage_Multi_Captions_Emb.mean()
+
+                        #build the batched result 
+                        texts_embs = torch.stack([texts_embs,singleImage_Multi_Captions_Emb], dim=0)
+            else : #other datasets
+                batch_images, labels = real_batch
+                N = batch_images.size(0)
+            
+            # 0. Pass (Text+Noise) embeddings >  EmbeddingEncoder_NN > Generator_NN
+            noise_emb = noise_coco(N, self.cuda)
+            tsne_embeddings_noise = torch.cat((tsne_embeddings_noise, noise_emb.detach().cpu()), 0)
+            if self.use_captions :
+                tsne_embeddings_text = torch.cat((tsne_embeddings_text, texts_embs.detach().cpu()), 0)
+            
+        
+        # Instantialte tsne, specify cosine metric and project to 2D using T-SNE
+        
+        tsne_embeddings_noise = np.array(tsne_embeddings_noise.view(-1,self.noise_emb_sz))
+        tsne_noise = TSNE(n_components=2,random_state = 0, n_iter = 1000, metric = 'cosine')
+        tsne_proj_noise = tsne_noise.fit_transform(tsne_embeddings_noise)
+        
+        cmap = cm.get_cmap('tab20')
+        fig, ax = plt.subplots(figsize=(8,8))
+        ax.scatter(tsne_proj_noise[:,0],tsne_proj_noise[:,1], c=np.array(cmap(0)).reshape(1,4),label="noise emb", alpha=0.5); 
+        ax.set_title('Noise embedding Vis. using t-SNE')
+        ax.legend(fontsize='large', markerscale=2)
+        logger.savefig(fig,'noise_emb')
+    
+
+        #Plot text embedding and text+noise emebeddings
+        if self.use_captions:
+            tsne_embeddings_text  = np.array(tsne_embeddings_text)
+            tsne_text  = TSNE(n_components=2,random_state = 0, n_iter = 1000,metric = 'cosine')
+            tsne_proj_text  = tsne_text.fit_transform(tsne_embeddings_text)
+
+            #Plot Text emebedding alone
+            fig, ax   = plt.subplots(figsize=(8,8))
+            ax.scatter(tsne_proj_text[:,0],tsne_proj_text[:,1],c=np.array(cmap(2)).reshape(1,4), label="text emb",alpha=0.5); 
+            ax.set_title('text embedding Vis. using t-SNE')
+            ax.legend(fontsize='large', markerscale=2)
+            logger.savefig(fig,'text_emb')
+            
+            #Plot noise and text embeddings togther 
+            fig, ax = plt.subplots(figsize=(8,8))
+            ax.scatter(tsne_proj_text[:,0] ,tsne_proj_text[:,1] , c=np.array(cmap(0)).reshape(1,4), label = 'text emb' ,alpha=0.5)
+            ax.scatter(tsne_proj_noise[:,0],tsne_proj_noise[:,1], c=np.array(cmap(2)).reshape(1,4), label = 'noise emb',alpha=0.5)
+            ax.legend(fontsize='large', markerscale=2)
+            ax.set_title('Noise and Text embedding Vis. using t-SNE')
+            logger.savefig(fig,'Noise and Text embeddings')
