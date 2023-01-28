@@ -465,21 +465,47 @@ class Experiment:
 
         #Plot text embedding and text+noise emebeddings
         if self.use_captions:
+            tsne_embeddings_text_normalized=(tsne_embeddings_text-tsne_embeddings_text.mean())/tsne_embeddings_text.std()
+            tsne_embeddings_text_normalized  = np.array(tsne_embeddings_text_normalized)
             tsne_embeddings_text  = np.array(tsne_embeddings_text)
-            tsne_text  = TSNE(n_components=2,random_state = 0, n_iter = 1000,metric = 'cosine')
+            
+            tsne_text       = TSNE(n_components=2,random_state = 0, n_iter = 1000,metric = 'cosine')
+            tsne_Norm_text  = TSNE(n_components=2,random_state = 0, n_iter = 1000,metric = 'cosine')
+            
             tsne_proj_text  = tsne_text.fit_transform(tsne_embeddings_text)
+            tsne_proj_Norm_text = tsne_Norm_text.fit_transform(tsne_embeddings_text_normalized)
 
-            #Plot Text emebedding alone
+
+            #Plot Text embedding alone
             fig, ax   = plt.subplots(figsize=(8,8))
             ax.scatter(tsne_proj_text[:,0],tsne_proj_text[:,1],c=np.array(cmap(2)).reshape(1,4), label="text emb",alpha=0.5); 
             ax.set_title('text embedding Vis. using t-SNE')
             ax.legend(fontsize='large', markerscale=2)
             logger.savefig(fig,'text_emb')
             
-            #Plot noise and text embeddings togther 
+            #Plot noise + text embeddings together 
             fig, ax = plt.subplots(figsize=(8,8))
-            ax.scatter(tsne_proj_text[:,0] ,tsne_proj_text[:,1] , c=np.array(cmap(0)).reshape(1,4), label = 'text emb' ,alpha=0.5)
-            ax.scatter(tsne_proj_noise[:,0],tsne_proj_noise[:,1], c=np.array(cmap(2)).reshape(1,4), label = 'noise emb',alpha=0.5)
+            ax.scatter(tsne_proj_noise[:,0],tsne_proj_noise[:,1], c=np.array(cmap(0)).reshape(1,4), label = 'noise emb',alpha=0.5)
+            ax.scatter(tsne_proj_text[:,0] ,tsne_proj_text[:,1] , c=np.array(cmap(2)).reshape(1,4), label = 'text emb' ,alpha=0.5)
             ax.legend(fontsize='large', markerscale=2)
             ax.set_title('Noise and Text embedding Vis. using t-SNE')
-            logger.savefig(fig,'Noise and Text embeddings')
+            logger.savefig(fig,'Noise_&_Text_embeddings')
+
+            #Plot Normalized-Text-embedding alone
+            fig, ax   = plt.subplots(figsize=(8,8))
+            ax.scatter(tsne_proj_Norm_text[:,0],tsne_proj_Norm_text[:,1],c=np.array(cmap(2)).reshape(1,4), label="Normalized text emb",alpha=0.5); 
+            ax.set_title(' Normalized_text embedding [mean=0 & std=1], Vis. using t-SNE')
+            ax.legend(fontsize='large', markerscale=2)
+            logger.savefig(fig,'Normalized_text_emb')
+            
+            
+
+            #Plot noise +  Normalize_text embeddings togther 
+            fig, ax = plt.subplots(figsize=(8,8))
+            ax.scatter(tsne_proj_noise[:,0],tsne_proj_noise[:,1], c=np.array(cmap(0)).reshape(1,4), label = 'noise emb',alpha=0.5)
+            ax.scatter(tsne_proj_Norm_text[:,0] ,tsne_proj_Norm_text[:,1] , c=np.array(cmap(2)).reshape(1,4), label = 'Normalized text emb' ,alpha=0.5)
+            ax.legend(fontsize='large', markerscale=2)
+            ax.set_title('Noise and Normalized_Text embedding Vis. using t-SNE')
+            logger.savefig(fig,'Noise and Normalized_Text embeddings')
+
+            
