@@ -33,8 +33,9 @@ def experiment_setup(args: argparse.Namespace) -> None:
     """
     experiments = experimentsAll
     for experiment in experiments:
+        # experiment.train_AE()
         experiment.run(logging_frequency=1)
-        experiment.visualize()
+        # experiment.visualize()
 
 
 if __name__ == "__main__":

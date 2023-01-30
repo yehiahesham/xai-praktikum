@@ -61,6 +61,12 @@ class Logger:
         plt.legend()
         plt.savefig(self.data_subdir + "/plotLoss.png")
 
+    def save_error(self, loss,name):
+        np.save(self.data_subdir + f'/{name}_loss.npy', np.array(loss))
+        plt.plot(loss, color="blue", label="generator")
+        plt.legend()
+        plt.savefig(self.data_subdir + f'/{name}_plotLoss.png')
+
     def Generator_per_epoch(self,fake_data,epoch):
         from PIL import Image
         path_output = f'{os.getcwd()}/Generated_PerEpoch'

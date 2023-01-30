@@ -46,7 +46,6 @@ class EmbeddingEncoderNetMSCOCO(nn.Module, ABC):
         x = self.hidden2(x)
         x = self.out(x)
         return x
-
 #============================================ start of Generators =====================================================================================
 
 class GeneratorNetCIFAR10(nn.Module, ABC):

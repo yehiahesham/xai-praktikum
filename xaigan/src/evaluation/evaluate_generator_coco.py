@@ -149,6 +149,10 @@ def generate_samples_coco(number,args,path_output):
 
 
     # load saved weights for generator  & intialize Models
+    generator = Generator_Encoder_Net_CIFAR10(
+                    noise_emb_sz=0,
+                    text_emb_sz=text_emb_sz,
+                    n_features=100).to('cpu')
     generator.load_state_dict(torch.load(gen_path, map_location=lambda storage, loc: storage)['model_state_dict'])
     generator.eval()
     
@@ -165,7 +169,8 @@ def generate_samples_coco(number,args,path_output):
             if use_captions_only==False: #noise + captions
                 dense_emb = torch.cat((random_text_emb,noise.reshape(1,-1)), 1)
             else: #captions only
-                dense_emb = random_text_emb[:,:,np.newaxis, np.newaxis]
+                dense_emb = random_text_emb
+                # dense_emb = random_text_emb[:,:,np.newaxis, np.newaxis]
         else: #use_captions==False
             dense_emb=noise
         

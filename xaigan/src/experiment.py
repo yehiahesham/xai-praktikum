@@ -1,20 +1,20 @@
 from get_data import get_loader
 from utils.vector_utils import  values_target, weights_init, vectors_to_images_coco,vectors_to_images, noise_coco
 from evaluation.evaluate_generator_coco import calculate_metrics_coco, read_random_captionsFile,get_random_text
+from models.generators import Generator_Encoder_Net_CIFAR10
 from logger import Logger
 from utils.explanation_utils import get_explanation,explanation_hook
-from torch.autograd import Variable
+from PIL import Image
+from sklearn.manifold import TSNE
+from matplotlib import cm
 from torch import nn
+from torch.autograd import Variable
+import matplotlib.pyplot as plt
 import torch
-import time
-import random
-import string
+import time,random,string,os
 import pandas as pd
 import numpy as np
 
-from sklearn.manifold import TSNE
-import matplotlib.pyplot as plt
-from matplotlib import cm
 
 
 class Experiment:
@@ -121,8 +121,8 @@ class Experiment:
             
         }
 
-        # calculate_metrics_coco(sampling_args,numberOfSamples=15)
-        # return
+        calculate_metrics_coco(sampling_args,numberOfSamples=15)
+        return
 
         test_noise = noise_coco(self.samples, self.cuda)
         if self.use_captions: #will need captions, extract text emb
@@ -140,7 +140,8 @@ class Experiment:
         
         
         if  self.use_captions and self.use_captions_only: #captions only
-            test_dense_emb=test_texts_embs[:,:,np.newaxis, np.newaxis]
+            test_dense_emb=test_texts_embs 
+            # test_dense_emb=test_texts_embs[:,:,np.newaxis, np.newaxis]
 
         elif self.use_captions and self.use_captions_only==False: #noise + captions
             #concatinate the 2 embeddings if needed
@@ -151,6 +152,19 @@ class Experiment:
 
         self.generator.apply(weights_init)
         self.discriminator.apply(weights_init)
+        
+        #generalize
+        # check and load encoder and freeze its weights of found
+        AE_gen_path=f'{os.getcwd()}/results/{self.type["dataset"]}/{self.name}/AE_generator.pt'
+        if os.path.exists(AE_gen_path):
+            self.generator = Generator_Encoder_Net_CIFAR10(
+                    noise_emb_sz=0,
+                    text_emb_sz=self.text_emb_sz,
+                    n_features=100).to(self.device) 
+            self.generator.load_state_dict(torch.load(AE_gen_path, map_location=lambda storage, loc: storage)['model_state_dict'])            
+            #freezing weights of encoder part of AE 
+            for param in self.generator.encoder.parameters():
+                param.requires_grad = False
 
         loader = get_loader(self.type["batchSize"], self.type["percentage"], self.type["dataset"], self.target_image_w, self.target_image_h)
         num_batches = len(loader)
@@ -245,7 +259,8 @@ class Experiment:
                     dense_emb = torch.cat((texts_embs,noise_emb.reshape(N,-1)), 1)#.to(torch.float16)
                 
                 elif self.use_captions and self.use_captions_only: #captions only
-                    dense_emb=texts_embs[:,:,np.newaxis, np.newaxis]
+                    dense_emb=texts_embs
+                    # dense_emb=texts_embs[:,:,np.newaxis, np.newaxis]
                     
                 else: #noise only
                     dense_emb = noise_emb
@@ -273,7 +288,8 @@ class Experiment:
                     dense_emb = torch.cat((texts_embs,noise_emb.reshape(N, -1)), 1)
                 
                 elif self.use_captions and self.use_captions_only: #captions only
-                    dense_emb=texts_embs[:,:,np.newaxis, np.newaxis]
+                    dense_emb=texts_embs
+                    # dense_emb=texts_embs[:,:,np.newaxis, np.newaxis]
                 
                 else: #noise only
                     dense_emb=noise_emb
@@ -508,4 +524,187 @@ class Experiment:
             ax.set_title('Noise and Normalized_Text embedding Vis. using t-SNE')
             logger.savefig(fig,'Noise and Normalized_Text embeddings')
 
+    def train_AE(self, logging_frequency=4):
+        """
+        This function runs the experiment
+        :param logging_frequency: how frequently to log each epoch (default 4)
+        :type logging_frequency: int
+        :return: None
+        :rtype: None
+        """        
+
+        Encoder_emb_sz=100 #hyper
+        loss=nn.MSELoss()
+        # loss=nn.L1Loss()
+
+
+        AE_optim = torch.optim.Adam(self.generator.parameters(), lr=self.type["glr"], betas=(0.5, 0.99))
+        generator = Generator_Encoder_Net_CIFAR10(
+                    noise_emb_sz=0,
+                    text_emb_sz=self.text_emb_sz,
+                    n_features=Encoder_emb_sz).to(self.device) 
+
+        start_time = time.time()
+        logger = Logger(self.name, self.type["dataset"])
+
+
+        sampling_args = {
+            'generator' :Generator_Encoder_Net_CIFAR10,
+            'pretrained_generatorPath': f'{logger.data_subdir}/generator.pt',
+            "pretrained_discriminatorPath": f'{logger.data_subdir}/discriminator.pt',
+            "text_emb_model"  :self.type["text_emb_model"],           
+            'dataset'       :self.type["dataset"],
+            'noise_emb_sz'  :self.type["noise_emb_sz"],
+            'text_emb_sz'   :self.type["text_emb_sz"],
+            'Encoder_emb_sz':self.Encoder_emb_sz,
+            'discriminator': self.type["discriminator"],
+
+            'use_captions'  :self.type['use_captions'],
+            'use_one_caption'  :self.type['use_one_caption'],
+            'use_captions_only'  :self.type['use_captions_only'],
             
+            "explainable" :self.type["explainable"],
+            "explanationType" : self.type["explanationType"],
+            "explanationTypes" : ["lime","integrated_gradients", "saliency", "shapley_value_sampling","deeplift"],
+            
+        }
+
+        # calculate_metrics_coco(sampling_args,numberOfSamples=15)
+        # return
+
+        generator.apply(weights_init)
+
+        loader = get_loader(self.type["batchSize"], self.type["percentage"], self.type["dataset"], self.target_image_w, self.target_image_h)
+        num_batches = len(loader)
+
+        if self.cuda:
+            generator = generator.cuda()
+            loss = loss.cuda()
+
+        # track losses
+        AE_losses = []
+        best_AE_error= 1000000000
+
+        # Start training
+        # self.epochs=0
+        for epoch in range(1, self.epochs + 1):        
+            
+            for n_batch, (real_batch) in enumerate(loader):
+                
+                if self.type["dataset"] == 'flowers-102':
+                    batch_images,labels,captions = real_batch #images,classes, Matrix of (10,batch_size) =>  10 cap/per image
+                    N = batch_images.size(0)
+                    MAX_CAPTIONS_PER_IMAGE=10
+
+                    #text proccess if needed 
+                    texts_embs = None
+                    if   self.use_captions and self.use_one_caption:
+                        batched_captions = []
+                        # pick best caption as captions with longest length
+                        for batch_elt_i in range(N):   #loop on batch elements
+                            caption_with_max_len=max([captions[caption_j][batch_elt_i] for caption_j in range (0,MAX_CAPTIONS_PER_IMAGE)] ,key=len)
+                            batched_captions.append(caption_with_max_len)                            
+                    
+                        #Stack text embs [batch_size,text_emb_sz]
+                        texts_embs = torch.stack([self.text_emb_model.forward([batched_captions[i]]).squeeze() \
+                                            for i in range(N)], dim=0)
+
+                else : #other datasets
+                    print("error in dataset"); return 
+                
+                # 0. Pass (Text+Noise) embeddings >  EmbeddingEncoder_NN > Generator_NN
+
+                noise_emb = noise_coco(N, self.cuda)
+                if self.use_captions and self.use_captions_only==False: #noise + captions
+                    # concatinate the 2 embeddings
+                    dense_emb = torch.cat((texts_embs,noise_emb.reshape(N,-1)), 1)#.to(torch.float16)
+                
+                elif self.use_captions and self.use_captions_only: #captions only
+                    dense_emb=texts_embs
+                    # dense_emb=texts_embs[:,:,np.newaxis, np.newaxis]
+                    
+                else: #noise only
+                    dense_emb = noise_emb
+
+                fake_data = generator(dense_emb) #generate a new fake image to train the Generator & Encoder
+
+                if self.cuda:
+                    fake_data = fake_data.cuda()
+                    batch_images = batch_images.cuda().float()
+
+                # Train AE 
+                # Reset gradients
+                AE_optim.zero_grad()
+
+                # Calculate error and back-propagate
+                AE_error = loss(fake_data, batch_images)
+                AE_error.backward()
+
+                # clip gradients to avoid exploding gradient problem
+                nn.utils.clip_grad_norm_(generator.parameters(), 10)
+
+                # update parameters
+                AE_optim.step()
+
+                # Save models if their losses are smaller 
+                if(AE_error<=best_AE_error):
+                    logger.save_model(model=generator,name="AE_generator",epoch=epoch,loss=AE_error)
+                    best_AE_error=AE_error
+                     
+                # Save Losses for plotting later
+                AE_losses.append(AE_error.item())
+
+                # Display status Logs
+                if n_batch % (num_batches // logging_frequency) == 0:
+                    if isinstance(AE_error, torch.autograd.Variable):
+                        AE_error = AE_error.data.cpu().numpy()
+                    print('Epoch: [{}/{}], Batch Num: [{}/{}]'.format(
+                        epoch, self.epochs, n_batch, num_batches)
+                    )
+                    print('AE Loss: {:.4f}'.format(AE_error))
+
+        logger.save_error(AE_losses,"AE_losses")
+        # testing the generation part (decoder)
+        
+        if self.epochs==0: 
+            gen_path="/home2/yehia.ahmed/git/xai-praktikum/results/flowers-102/flowers_Roberta_only/AE_generator.pt"
+            generator.load_state_dict(torch.load(gen_path, map_location=lambda storage, loc: storage)['model_state_dict'])
+        generator.eval()
+        generator.to('cpu')
+        self.text_emb_model.device='cpu'
+        self.text_emb_model.to('cpu')
+        numberOfSamples=15
+        random_texts = read_random_captionsFile(self.type["dataset"])
+        random_texts = get_random_text(numberOfSamples,random_texts,self.type["dataset"]) #using MSCOC-2014 val set caption
+        
+        for i in range(numberOfSamples):
+            noise = noise_coco(1, False)
+            if self.use_captions:
+                print(random_texts[i])
+                random_text_emb = self.text_emb_model.forward([random_texts[i]]).detach()
+
+                if self.use_captions_only==False: #noise + captions
+                    dense_emb = torch.cat((random_text_emb,noise.reshape(1,-1)), 1)
+                else: #captions only
+                    dense_emb = random_text_emb
+                    # dense_emb = random_text_emb[:,:,np.newaxis, np.newaxis]
+            else: #use_captions==False
+                dense_emb=noise
+            
+            path_output = f'{os.getcwd()}/AE_Generated_sampes'
+            if not os.path.exists(path_output):
+                os.makedirs(path_output)
+            
+            sample = generator(dense_emb).detach()
+            sample_image = sample.squeeze(0).numpy()
+            sample_image = np.transpose(sample_image, (1, 2, 0))
+            sample_image = ((sample_image/2) + 0.5) * 255
+            sample_image = sample_image.astype(np.uint8)        
+            sample_image = Image.fromarray(sample_image)        
+            sample_image.save(f'{path_output}/{i}.jpg')
+            # 
+
+        timeTaken = time.time() - start_time
+        logger.save_scores(timeTaken, 0)
+        return
+
