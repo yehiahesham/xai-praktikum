@@ -53,6 +53,16 @@ def test():
     print(preds.shape) # 30x30. Each value in this grid sees
     # 70x70 patch of the original image.(PatchGAN)
 
+
+def test():
+    x = torch.randn((5, 3, 256, 256)) # 5 examples, rgb, 256x256
+    model = Discriminator(in_channels=3)
+    preds = model(x)
+    print(model)
+    print(preds.shape) # 30x30. Each value in this grid sees
+    # 70x70 patch of the original image.(PatchGAN)
+
+
 if __name__ == "__main__":
     test()
 
