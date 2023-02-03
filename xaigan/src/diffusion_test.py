@@ -6,8 +6,10 @@ if __name__ == "__main__":
     from matplotlib import pyplot as plt
     from matplotlib import image as mpimg
     device = 'cuda'
+    
 
     generator = DiffusionModel()
+    #generator.to(device)
     
     text_inputs=[
         "the flowers and pedals of this flower look like a butterfly and they are spread out.",
@@ -18,4 +20,5 @@ if __name__ == "__main__":
     #generator.eval()
     for x in text_inputs:
         image = generator.forward(x)
+        #print(image.shape)
         image.save("D:\\Praktikum\\xai_demo\\xai-praktikum\\xaigan\\src\\results\\diffusion" + "\\"+str(x)+'.png')
