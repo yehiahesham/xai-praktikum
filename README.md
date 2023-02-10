@@ -1,7 +1,7 @@
 # xai-praktikum
 TUM WiSe 22/23 - Explainable AI Praktikum Repository
 
-![Poster](https://drive.google.com/file/d/1I6S9fsopNhWlOTUDu0tpgqhOCDivm_8E/view?usp=share_link)
+![Poster](https://github.com/yehiahesham/xai-praktikum/blob/xai-dev/XAI_GAN_Poster.png)
 
 
 # CONDA 
