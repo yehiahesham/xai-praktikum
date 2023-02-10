@@ -1,5 +1,7 @@
 # xai-praktikum
 TUM WiSe 22/23 - Explainable AI Praktikum Repository
+Trains and explains GAN models using various explainability techniques like Saliency, Integrated gradients, LIME, SHAP.
+Also, we use explanations to improved GAN's performance.
 
 ![Poster](https://github.com/yehiahesham/xai-praktikum/blob/xai-dev/XAI_GAN_Poster.png)
 
