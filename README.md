@@ -1,6 +1,8 @@
 # xai-praktikum
 TUM WiSe 22/23 - Explainable AI Praktikum Repository
 
+![Poster](https://github.com/yehiahesham/xai-praktikum/blob/main/XAI_GAN_Poster.png)
+
 # CONDA 
 ## Create Env and Install Libs via CONDA :
 
